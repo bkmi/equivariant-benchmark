@@ -16,6 +16,9 @@ from se3cnn.point.operations import Convolution
 from se3cnn.point.radial import CosineBasisModel
 
 
+torch.set_default_dtype(torch.float64)
+
+
 def get_parser():
     parser = argparse.ArgumentParser()
     # parser.add_argument("--pickle", type=str, required=True, help="File for saving args and results.")
@@ -71,15 +74,13 @@ class Network(torch.nn.Module):
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, args.embed, padding_idx=0)])
         self.layers += [GatedBlock(rs_in, rs_out, sp, rescaled_act.sigmoid, c) for rs_in, rs_out in zip(rs, rs[1:])]
 
-    def forward(self, features, geometry, batchwise_num_atoms=None):
-        if batchwise_num_atoms is None:
-            batchwise_num_atoms = geometry.size(1)
-
+    def forward(self, features, geometry, mask):
+        batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
         for layer in self.layers[1:]:
-            print(features.shape)
             features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            features = features * mask.unsqueeze(-1)
         return features
 
 
@@ -101,10 +102,13 @@ def main():
     wall_start = perf_counter()
     for epoch in range(args.epochs):
         for batch in loader:
-            batch = {k: v.to(args.gpu) for k, v in batch.items()}
+            batch = {
+                k: v.to(device=args.gpu, dtype=torch.float64) if v.dtype is torch.float32 else v.to(device=args.gpu)
+                for k, v in batch.items()
+            }
 
-            output = net(batch['_atomic_numbers'], batch['_positions'], batch['_atom_mask'].sum(dim=-1))
-            pooled = output.squeeze().sum(dim=-1)
+            output = net(batch['_atomic_numbers'], batch['_positions'], batch['_atom_mask'])
+            pooled = output.sum(dim=1)
             loss = F.mse_loss(pooled, batch[QM9.U0])
 
             opt.zero_grad()
