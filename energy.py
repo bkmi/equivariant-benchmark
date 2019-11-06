@@ -1,8 +1,10 @@
 from functools import partial
+from time import perf_counter
 
 import argparse
 
 import torch
+import torch.nn.functional as F
 
 from schnetpack.data import train_test_split, AtomsLoader
 from schnetpack.datasets import QM9
@@ -22,12 +24,14 @@ def get_parser():
     # parser.add_argument("--data_seed", type=int, default=0, help="Random seed for organizing data.")
     # parser.add_argument("--init_seed", type=int, default=0, help="Random seed for initializing network.")
     # parser.add_argument("--batch_seed", type=int, default=0, help="Random seed for batch distribution.")
-    # parser.add_argument("--wall", type=float, required=True, help="If calculation time is too long, break.")
+    parser.add_argument("-w", "--wall", type=float, required=True, help="If calculation time is too long, break.")
     parser.add_argument("-d", "--db", type=str, required=True, help="Path to qm9 database.")
+    parser.add_argument("-e", "--epochs", type=int, required=True, help="Number of epochs.")
+    parser.add_argument("--gpu", type=bool, default=True, help="Use gpu.")
     parser.add_argument("--bs", type=int, default=5, help="Batch size.")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate.")
     # parser.add_argument("--nnei", type=float, default=12, help="Average number of atoms convolved together.")
-    parser.add_argument("--embed", type=int, default=128)
+    parser.add_argument("--embed", type=int, default=32)
     parser.add_argument("--l0", type=int, default=4)
     parser.add_argument("--l1", type=int, default=4)
     parser.add_argument("--l2", type=int, default=4)
@@ -55,49 +59,62 @@ class Network(torch.nn.Module):
     def __init__(self, args):
         super().__init__()
 
-        rs = [[(6, 0)]]
-        rs += [
-            (mul, l)
-            for l, mul in enumerate([args.l0, args.l1, args.l2, args.l3])
-        ] * args.L
-        rs += [[(1, 1)]]
+        rs = [[(args.embed, 0)]]
+        rs_mid = [(mul, l) for l, mul in enumerate([args.l0, args.l1, args.l2, args.l3])]
+        rs += [rs_mid] * args.L
+        rs += [[(1, 0)]]
 
         c = convolution(args)
         sp = rescaled_act.Softplus(beta=5.0)
 
-        self.layers = torch.nn.ModuleList([
-            GatedBlock(rs_in, rs_out, sp, rescaled_act.sigmoid, c)
-            for rs_in, rs_out in zip(rs, rs[1:])
-        ])
+        qm9_max_z = 10
+        self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, args.embed, padding_idx=0)])
+        self.layers += [GatedBlock(rs_in, rs_out, sp, rescaled_act.sigmoid, c) for rs_in, rs_out in zip(rs, rs[1:])]
 
     def forward(self, features, geometry, batchwise_num_atoms=None):
         if batchwise_num_atoms is None:
             batchwise_num_atoms = geometry.size(1)
 
-        for layer in self.layers:
-            features = layer(features.div(batchwise_num_atoms ** 0.5), geometry)
+        embedding = self.layers[0]
+        features = embedding(features)
+        for layer in self.layers[1:]:
+            print(features.shape)
+            features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
         return features
 
 
 def main():
     parser = get_parser()
     args = parser.parse_args()
+    args.gpu = torch.device("cuda:0") if args.gpu and torch.cuda.is_available() else torch.device("cpu")
     data = QM9(args.db)
 
     train, val, test = train_test_split(data, num_train=100, num_val=100)
-    loader = AtomsLoader(train, batch_size=100, num_workers=4)
+    loader = AtomsLoader(train, batch_size=16, num_workers=4)
     val_loader = AtomsLoader(val)
 
-    net = Network(args)
+    net = Network(args).to(args.gpu)
 
     opt = torch.optim.Adam(net.parameters(), lr=args.lr)
-    loss = lambda b, p: F.mse_loss(p["y"], b[QM9.U0])
-    trainer = spk.train.Trainer("output/", model, loss, opt, loader, val_loader)
+    # trainer = spk.train.Trainer("output/", model, loss, opt, loader, val_loader)
 
-    for batch in loader:
-        output = net(loader['elements'], loader['_positions'], loader['mask'].sum(dim=-1))
+    wall_start = perf_counter()
+    for epoch in range(args.epochs):
+        for batch in loader:
+            batch = {k: v.to(args.gpu) for k, v in batch.items()}
 
+            output = net(batch['_atomic_numbers'], batch['_positions'], batch['_atom_mask'].sum(dim=-1))
+            pooled = output.squeeze().sum(dim=-1)
+            loss = F.mse_loss(pooled, batch[QM9.U0])
 
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+
+            wall = perf_counter() - wall_start
+
+            if wall > args.wall:
+                break
 
 
 if __name__ == '__main__':
