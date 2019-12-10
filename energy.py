@@ -16,6 +16,14 @@ from se3cnn.point.operations import Convolution
 from se3cnn.point.radial import CosineBasisModel
 
 
+# SchNet hyper params
+# batch = 32
+# lr = 1e-3
+# lr decay 0.96 / 100000 steps
+# validation set 1000
+# training = {50000, 100000, 110462}
+# gaussian basis = [0, 30]A, every 0.1A, gamma = 10A
+
 def get_parser():
     parser = argparse.ArgumentParser()
     # parser.add_argument("--pickle", type=str, required=True, help="File for saving args and results.")
@@ -37,8 +45,8 @@ def get_parser():
     parser.add_argument("--l2", type=int, default=4)
     parser.add_argument("--l3", type=int, default=4)
     parser.add_argument("--L", type=int, default=4, help="How many layers to create.")
-    parser.add_argument("--rad_nb", type=int, default=30, help="Radial number of bases.")
-    parser.add_argument("--rad_maxr", type=float, default=1.6, help="Max radius.")
+    parser.add_argument("--rad_nb", type=int, default=300, help="Radial number of bases.")
+    parser.add_argument("--rad_maxr", type=float, default=30, help="Max radius.")
     parser.add_argument("--rad_h", type=int, default=100, help="Size of radial weight parameters.")
     parser.add_argument("--rad_L", type=int, default=2, help="Number of radial layers.")
     # parser.add_argument("--save_state", type=int, default=0)
@@ -71,15 +79,15 @@ class Network(torch.nn.Module):
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, args.embed, padding_idx=0)])
         self.layers += [GatedBlock(rs_in, rs_out, sp, rescaled_act.sigmoid, c) for rs_in, rs_out in zip(rs, rs[1:])]
 
-    def forward(self, features, geometry, batchwise_num_atoms=None):
-        if batchwise_num_atoms is None:
-            batchwise_num_atoms = geometry.size(1)
-
+    def forward(self, features, geometry, mask):
+        batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
         for layer in self.layers[1:]:
-            print(features.shape)
-            features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            features = torch.mul(
+                mask.unsqueeze(-1),
+                layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            )
         return features
 
 
@@ -103,8 +111,8 @@ def main():
         for batch in loader:
             batch = {k: v.to(args.gpu) for k, v in batch.items()}
 
-            output = net(batch['_atomic_numbers'], batch['_positions'], batch['_atom_mask'].sum(dim=-1))
-            pooled = output.squeeze().sum(dim=-1)
+            output = net(batch['_atomic_numbers'], batch['_positions'], batch['_atom_mask'])
+            pooled = output.squeeze().sum(dim=-1, keepdim=True)
             loss = F.mse_loss(pooled, batch[QM9.U0])
 
             opt.zero_grad()
