@@ -16,8 +16,13 @@ from se3cnn.point.operations import Convolution
 from se3cnn.point.radial import CosineBasisModel
 
 
-torch.set_default_dtype(torch.float64)
-
+# SchNet hyper params
+# batch = 32
+# lr = 1e-3
+# lr decay 0.96 / 100000 steps
+# validation set 1000
+# training = {50000, 100000, 110462}
+# gaussian basis = [0, 30]A, every 0.1A, gamma = 10A
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -27,11 +32,11 @@ def get_parser():
     # parser.add_argument("--data_seed", type=int, default=0, help="Random seed for organizing data.")
     # parser.add_argument("--init_seed", type=int, default=0, help="Random seed for initializing network.")
     # parser.add_argument("--batch_seed", type=int, default=0, help="Random seed for batch distribution.")
-    parser.add_argument("--wall", type=float, required=True, help="If calculation time is too long, break.")
-    parser.add_argument("--db", type=str, required=True, help="Path to qm9 database.")
-    parser.add_argument("--epochs", type=int, required=True, help="Number of epochs.")
+    parser.add_argument("-w", "--wall", type=float, required=True, help="If calculation time is too long, break.")
+    parser.add_argument("-d", "--db", type=str, required=True, help="Path to qm9 database.")
+    parser.add_argument("-e", "--epochs", type=int, required=True, help="Number of epochs.")
     parser.add_argument("--gpu", type=bool, default=True, help="Use gpu.")
-    parser.add_argument("--bs", type=int, default=16, help="Batch size.")
+    parser.add_argument("--bs", type=int, default=5, help="Batch size.")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate.")
     # parser.add_argument("--nnei", type=float, default=12, help="Average number of atoms convolved together.")
     parser.add_argument("--embed", type=int, default=32)
@@ -40,8 +45,8 @@ def get_parser():
     parser.add_argument("--l2", type=int, default=4)
     parser.add_argument("--l3", type=int, default=4)
     parser.add_argument("--L", type=int, default=4, help="How many layers to create.")
-    parser.add_argument("--rad_nb", type=int, default=30, help="Radial number of bases.")
-    parser.add_argument("--rad_maxr", type=float, default=1.6, help="Max radius.")
+    parser.add_argument("--rad_nb", type=int, default=300, help="Radial number of bases.")
+    parser.add_argument("--rad_maxr", type=float, default=30, help="Max radius.")
     parser.add_argument("--rad_h", type=int, default=100, help="Size of radial weight parameters.")
     parser.add_argument("--rad_L", type=int, default=2, help="Number of radial layers.")
     # parser.add_argument("--save_state", type=int, default=0)
@@ -79,8 +84,10 @@ class Network(torch.nn.Module):
         embedding = self.layers[0]
         features = embedding(features)
         for layer in self.layers[1:]:
-            features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
-            features = features * mask.unsqueeze(-1)
+            features = torch.mul(
+                mask.unsqueeze(-1),
+                layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            )
         return features
 
 
@@ -102,15 +109,11 @@ def main():
     wall_start = perf_counter()
     for epoch in range(args.epochs):
         for batch in loader:
-            batch = {
-                k: v.to(device=args.gpu, dtype=torch.float64) if v.dtype is torch.float32 else v.to(device=args.gpu)
-                for k, v in batch.items()
-            }
+            batch = {k: v.to(args.gpu) for k, v in batch.items()}
 
             output = net(batch['_atomic_numbers'], batch['_positions'], batch['_atom_mask'])
-            pooled = output.sum(dim=1)
+            pooled = output.squeeze().sum(dim=-1, keepdim=True)
             loss = F.mse_loss(pooled, batch[QM9.U0])
-            print(loss)
 
             opt.zero_grad()
             loss.backward()
