@@ -1,7 +1,8 @@
-import torch
-import torch.nn.functional as F
-
+import logging
+import os
 from functools import partial
+
+import torch
 
 import schnetpack as spk
 from schnetpack import Properties
@@ -16,7 +17,7 @@ from se3cnn.point.radial import CosineBasisModel
 from arguments import qm9_energy_parser
 
 
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch.float32)
 
 
 def convolution(args):
@@ -35,7 +36,7 @@ class Network(torch.nn.Module):
         rs = [[(args.embed, 0)]]
         rs_mid = [(mul, l) for l, mul in enumerate([args.l0, args.l1, args.l2, args.l3])]
         rs += [rs_mid] * args.L
-        rs += [[(1, 0)]]
+        self.rs = rs
 
         c = convolution(args)
         sp = rescaled_act.Softplus(beta=5.0)
@@ -52,33 +53,114 @@ class Network(torch.nn.Module):
         for layer in self.layers[1:]:
             features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
             features = features * mask.unsqueeze(-1)
-        return features.sum(dim=1)
+        return features
+
+
+class OutputNetwork(torch.nn.Module):
+    def __init__(self, args, last_Rs):
+        super(OutputNetwork, self).__init__()
+        rs = [last_Rs]
+        rs += [[(1, 0)]]
+        self.rs = rs
+
+        c = convolution(args)
+        sp = rescaled_act.Softplus(beta=5.0)
+
+        self.layers = torch.nn.ModuleList([
+            GatedBlock(rs_in, rs_out, sp, rescaled_act.sigmoid, c) for rs_in, rs_out in zip(rs, rs[1:])
+        ])
+
+    def forward(self, batch):
+        features, geometry, mask = batch["representation"], batch[Properties.R], batch[Properties.atom_mask]
+        batchwise_num_atoms = mask.sum(dim=-1)
+        for layer in self.layers:
+            features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            features = features * mask.unsqueeze(-1)
+        return features
 
 
 def main():
+    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+
     parser = qm9_energy_parser()
     args = parser.parse_args()
 
-    # load qm9 dataset and download if necessary
-    data = QM9("/home/ben/science/data/qm9.db")
+    # basic settings
+    os.makedirs(args.model_dir)
+    properties = [QM9.U0]
 
-    # split in train and val
-    train, val, test = data.create_splits(num_train=args.ntr, num_val=args.nva)
-    loader = spk.data.AtomsLoader(train, batch_size=args.bs, num_workers=4)
-    val_loader = spk.data.AtomsLoader(val)
+    # data preparation
+    logging.info("get dataset")
+    dataset = QM9(args.db, load_only=[QM9.U0])
+    train, val, test = spk.train_test_split(
+        dataset,
+        num_train=args.ntr,
+        num_val=args.nva,
+        split_file=os.path.join(args.model_dir, "split.npz")
+    )
+    train_loader = spk.AtomsLoader(train, batch_size=args.bs, shuffle=True, num_workers=args.num_workers)
+    val_loader = spk.AtomsLoader(val, batch_size=args.bs, num_workers=args.num_workers)
 
-    # create model
-    model = Network(args)
+    # statistics
+    atomrefs = dataset.get_atomref(properties)
+    means, stddevs = train_loader.get_statistics(
+        properties, divide_by_atoms=True, single_atom_ref=atomrefs
+    )
 
-    # create trainer
-    opt = torch.optim.Adam(model.parameters(), lr=args.lr)
-    loss = lambda b, p: F.mse_loss(p, b[QM9.U0])
-    trainer = spk.train.Trainer("output/", model, loss, opt, loader, val_loader)
+    # model build
+    logging.info("build model")
+    # representation = spk.SchNet(n_interactions=6)
+    # output_modules = [
+    #     spk.atomistic.Atomwise(
+    #         n_in=representation.n_atom_basis,
+    #         property=QM9.U0,
+    #         mean=means[QM9.U0],
+    #         stddev=stddevs[QM9.U0],
+    #         atomref=atomrefs[QM9.U0],
+    #     )
+    # ]
+    # model = spk.AtomisticModel(representation, output_modules)
 
-    # start training
+    net = Network(args)
+    outnet = OutputNetwork(args, net.rs[-1])
+    output_modules = [
+        spk.atomistic.Atomwise(
+            n_in=0,
+            property=QM9.U0,
+            mean=means[QM9.U0],
+            stddev=stddevs[QM9.U0],
+            atomref=atomrefs[QM9.U0],
+            outnet=outnet
+        )
+    ]
+    model = spk.AtomisticModel(net, output_modules)
+
+    # build optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
+    # hooks
+    logging.info("build trainer")
+    metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
+    hooks = [spk.train.CSVHook(log_path=args.model_dir, metrics=metrics),
+             spk.train.ReduceLROnPlateauHook(optimizer)]
+
+    # trainer
+    loss = spk.train.build_mse_loss(properties)
+    trainer = spk.train.Trainer(
+        args.model_dir,
+        model=model,
+        hooks=hooks,
+        loss_fn=loss,
+        optimizer=optimizer,
+        train_loader=train_loader,
+        validation_loader=val_loader,
+    )
+
+    # run training
+    logging.info("training")
     device = torch.device("cuda") if args.gpu else torch.device("cpu")
-    # TODO I need to make it so qm9 is saved as a double, it is required by se3cnn now
-    trainer.train(device, args.epochs)
+    trainer.train(device=device, n_epochs=args.epochs)
+    # Problem serializing the partial trainer.py ln 241
 
 
 if __name__ == '__main__':

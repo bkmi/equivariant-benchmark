@@ -3,19 +3,23 @@ from argparse import ArgumentParser
 
 def qm9_energy_parser():
     parser = ArgumentParser()
-    parser.add_argument("--ntr", type=int, default=100000, help="Number of training examples.")
-    parser.add_argument("--nva", type=int, default=10000, help="Number of validation examples.")
+    parser.add_argument("--model_dir", type=str, required=True, help="Directory to save model.")
+
+    parser.add_argument("--ntr", type=int, default=1000, help="Number of training examples.")
+    parser.add_argument("--nva", type=int, default=100, help="Number of validation examples.")
 
     # parser.add_argument("--init_seed", type=int, default=0, help="Random seed for initializing network.")
     # parser.add_argument("--data_seed", type=int, default=0, help="Random seed for organizing data.")
     # parser.add_argument("--batch_seed", type=int, default=0, help="Random seed for batch distribution.")
 
-    # parser.add_argument("--wall", type=float, required=True, help="If calculation time is too long, break.")
     parser.add_argument("--db", type=str, required=True, help="Path to qm9 database.")
-    parser.add_argument("--gpu", type=bool, default=True, help="Use gpu.")
     parser.add_argument("--epochs", type=int, required=True, help="Number of epochs.")
     parser.add_argument("--bs", type=int, default=16, help="Batch size.")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate.")
+
+    # parser.add_argument("--wall", type=float, required=True, help="If calculation time is too long, break.")
+    parser.add_argument("--gpu", type=bool, default=True, help="Use gpu.")
+    parser.add_argument("--num_workers", type=int, default=4, help="Workers for data loader.")
 
     parser.add_argument("--embed", type=int, default=64)
     parser.add_argument("--l0", type=int, default=64)
