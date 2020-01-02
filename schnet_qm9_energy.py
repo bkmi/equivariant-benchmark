@@ -30,20 +30,19 @@ def convolution(args):
 
 
 class Network(torch.nn.Module):
-    def __init__(self, args):
+    def __init__(self, conv, embed, l0, l1, l2, l3, L, scalar_act):
         super().__init__()
 
-        rs = [[(args.embed, 0)]]
-        rs_mid = [(mul, l) for l, mul in enumerate([args.l0, args.l1, args.l2, args.l3])]
-        rs += [rs_mid] * args.L
-        self.rs = rs
-
-        c = convolution(args)
-        sp = rescaled_act.Softplus(beta=5.0)
+        Rs = [[(embed, 0)]]
+        Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1, l2, l3])]
+        Rs += [Rs_mid] * L
+        self.Rs = Rs
 
         qm9_max_z = 10
-        self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, args.embed, padding_idx=0)])
-        self.layers += [GatedBlock(rs_in, rs_out, sp, rescaled_act.sigmoid, c) for rs_in, rs_out in zip(rs, rs[1:])]
+        self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=0)])
+        self.layers += [
+            GatedBlock(rs_in, rs_out, scalar_act, rescaled_act.sigmoid, conv) for rs_in, rs_out in zip(Rs, Rs[1:])
+        ]
 
     def forward(self, batch):
         features, geometry, mask = batch[Properties.Z], batch[Properties.R], batch[Properties.atom_mask]
@@ -57,17 +56,14 @@ class Network(torch.nn.Module):
 
 
 class OutputNetwork(torch.nn.Module):
-    def __init__(self, args, last_Rs):
+    def __init__(self, conv, previous_Rs, scalar_act):
         super(OutputNetwork, self).__init__()
-        rs = [last_Rs]
-        rs += [[(1, 0)]]
-        self.rs = rs
-
-        c = convolution(args)
-        sp = rescaled_act.Softplus(beta=5.0)
+        Rs = [previous_Rs]
+        Rs += [[(1, 0)]]
+        self.Rs = Rs
 
         self.layers = torch.nn.ModuleList([
-            GatedBlock(rs_in, rs_out, sp, rescaled_act.sigmoid, c) for rs_in, rs_out in zip(rs, rs[1:])
+            GatedBlock(rs_in, rs_out, scalar_act, rescaled_act.sigmoid, conv) for rs_in, rs_out in zip(Rs, Rs[1:])
         ])
 
     def forward(self, batch):
@@ -86,7 +82,8 @@ def main():
     args = parser.parse_args()
 
     # basic settings
-    os.makedirs(args.model_dir)
+    os.makedirs(args.model_dir, exist_ok=True)
+    torch.save(args, args.model_dir + "args.pkl")
     properties = [QM9.U0]
 
     # data preparation
@@ -121,11 +118,12 @@ def main():
     # ]
     # model = spk.AtomisticModel(representation, output_modules)
 
-    net = Network(args)
-    outnet = OutputNetwork(args, net.rs[-1])
+    conv = convolution(args)
+    sp = rescaled_act.Softplus(beta=5.0)
+    net = Network(conv=conv, embed=args.embed, l0=args.l0, l1=args.l1, l2=args.l2, l3=args.l3, L=args.L, scalar_act=sp)
+    outnet = OutputNetwork(conv=conv, previous_Rs=net.Rs[-1], scalar_act=sp)
     output_modules = [
         spk.atomistic.Atomwise(
-            n_in=0,
             property=QM9.U0,
             mean=means[QM9.U0],
             stddev=stddevs[QM9.U0],
