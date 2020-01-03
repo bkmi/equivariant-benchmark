@@ -96,7 +96,11 @@ def main():
         split_file=os.path.join(args.model_dir, "split.npz")
     )
     train_loader = spk.AtomsLoader(train, batch_size=args.bs, shuffle=True, num_workers=args.num_workers)
-    val_loader = spk.AtomsLoader(val, batch_size=args.bs, num_workers=args.num_workers)
+    val_loader = spk.AtomsLoader(
+        val,
+        batch_size=args.bs,
+        num_workers=args.num_workers
+    )
 
     # statistics
     atomrefs = dataset.get_atomref(properties)
@@ -156,7 +160,8 @@ def main():
 
     # run training
     logging.info("training")
-    device = torch.device("cuda") if args.gpu else torch.device("cpu")
+    device = torch.device("cpu") if args.cpu else torch.device("cuda")
+    logging.info(f"device: {device}")
     trainer.train(device=device, n_epochs=args.epochs)
     # Problem serializing the partial trainer.py ln 241
 

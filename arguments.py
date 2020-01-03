@@ -18,7 +18,7 @@ def qm9_energy_parser():
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate.")
 
     # parser.add_argument("--wall", type=float, required=True, help="If calculation time is too long, break.")
-    parser.add_argument("--gpu", type=bool, default=True, help="Use gpu.")
+    parser.add_argument("--cpu", action='store_true', help="Only allow cpu.")
     parser.add_argument("--num_workers", type=int, default=4, help="Workers for data loader.")
 
     parser.add_argument("--embed", type=int, default=64)
