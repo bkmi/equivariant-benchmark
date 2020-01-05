@@ -21,16 +21,16 @@ def qm9_energy_parser():
     parser.add_argument("--cpu", action='store_true', help="Only allow cpu.")
     parser.add_argument("--num_workers", type=int, default=4, help="Workers for data loader.")
 
-    parser.add_argument("--embed", type=int, default=64)
-    parser.add_argument("--l0", type=int, default=64)
+    parser.add_argument("--embed", type=int, default=128)
+    parser.add_argument("--l0", type=int, default=128)
     parser.add_argument("--l1", type=int, default=0)
     parser.add_argument("--l2", type=int, default=0)
     parser.add_argument("--l3", type=int, default=0)
     parser.add_argument("--L", type=int, default=6, help="How many layers to create.")
 
-    parser.add_argument("--rad_nb", type=int, default=30, help="Radial number of bases.")
-    parser.add_argument("--rad_maxr", type=float, default=20, help="Max radius.")
-    parser.add_argument("--rad_h", type=int, default=100, help="Size of radial weight parameters.")
+    parser.add_argument("--rad_nb", type=int, default=25, help="Radial number of bases.")
+    parser.add_argument("--rad_maxr", type=float, default=5.0, help="Max radius.")
+    parser.add_argument("--rad_h", type=int, default=128, help="Size of radial weight parameters.")
     parser.add_argument("--rad_L", type=int, default=2, help="Number of radial layers.")
     return parser
 

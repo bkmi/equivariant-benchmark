@@ -8,11 +8,11 @@ import schnetpack as spk
 from schnetpack import Properties
 from schnetpack.datasets import QM9
 
-from se3cnn.non_linearities import rescaled_act
-from se3cnn.non_linearities.gated_block import GatedBlock
-from se3cnn.point.kernel import Kernel
-from se3cnn.point.operations import Convolution
-from se3cnn.point.radial import CosineBasisModel
+from e3nn.non_linearities import rescaled_act
+from e3nn.non_linearities.gated_block import GatedBlock
+from e3nn.point.kernel import Kernel
+from e3nn.point.operations import Convolution
+from e3nn.point.radial import CosineBasisModel
 
 from arguments import qm9_energy_parser
 
@@ -163,7 +163,6 @@ def main():
     device = torch.device("cpu") if args.cpu else torch.device("cuda")
     logging.info(f"device: {device}")
     trainer.train(device=device, n_epochs=args.epochs)
-    # Problem serializing the partial trainer.py ln 241
 
 
 if __name__ == '__main__':

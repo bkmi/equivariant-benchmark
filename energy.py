@@ -9,11 +9,11 @@ import torch.nn.functional as F
 from schnetpack.data import train_test_split, AtomsLoader
 from schnetpack.datasets import QM9
 
-from se3cnn.non_linearities import rescaled_act
-from se3cnn.non_linearities.gated_block import GatedBlock
-from se3cnn.point.kernel import Kernel
-from se3cnn.point.operations import Convolution
-from se3cnn.point.radial import CosineBasisModel
+from e3nn.non_linearities import rescaled_act
+from e3nn.non_linearities.gated_block import GatedBlock
+from e3nn.point.kernel import Kernel
+from e3nn.point.operations import Convolution
+from e3nn.point.radial import CosineBasisModel
 
 
 # SchNet hyper params
