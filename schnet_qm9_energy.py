@@ -40,6 +40,7 @@ class Network(torch.nn.Module):
 
         qm9_max_z = 10
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=0)])
+        # TODO this has changed in e3nn
         self.layers += [
             GatedBlock(rs_in, rs_out, scalar_act, rescaled_act.sigmoid, conv) for rs_in, rs_out in zip(Rs, Rs[1:])
         ]
