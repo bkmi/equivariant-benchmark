@@ -37,7 +37,7 @@ def qm9_energy_parser():
     parser.add_argument("--l1", type=int, default=0)
     parser.add_argument("--l2", type=int, default=0)
     parser.add_argument("--l3", type=int, default=0)
-    parser.add_argument("--L", type=int, default=6, help="How many layers to create.")
+    parser.add_argument("--L", type=int, default=4, help="How many layers to create.")
 
     parser.add_argument("--rad_nb", type=int, default=25, help="Radial number of bases.")
     parser.add_argument("--rad_maxr", type=float, default=5.0, help="Max radius.")
