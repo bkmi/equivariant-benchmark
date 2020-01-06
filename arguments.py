@@ -1,9 +1,20 @@
 from argparse import ArgumentParser
 
 
+def directory_format(string: str):
+    string = str(string)
+    if string[-1] is "/":
+        pass
+    elif string[-1] is "\\":
+        raise TypeError("Can't use pc format.")
+    else:
+        string += "/"
+    return string
+
+
 def qm9_energy_parser():
     parser = ArgumentParser()
-    parser.add_argument("--model_dir", type=str, required=True, help="Directory to save model.")
+    parser.add_argument("--model_dir", type=directory_format, required=True, help="Directory to save model.")
 
     parser.add_argument("--ntr", type=int, default=1000, help="Number of training examples.")
     parser.add_argument("--nva", type=int, default=100, help="Number of validation examples.")

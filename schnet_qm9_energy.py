@@ -42,7 +42,12 @@ class Network(torch.nn.Module):
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=0)])
         # TODO this has changed in e3nn
         self.layers += [
-            GatedBlock(rs_in, rs_out, scalar_act, rescaled_act.sigmoid, conv) for rs_in, rs_out in zip(Rs, Rs[1:])
+            GatedBlock(
+                partial(conv, rs_in),
+                rs_out,
+                scalar_act,
+                rescaled_act.sigmoid
+            ) for rs_in, rs_out in zip(Rs, Rs[1:])
         ]
 
     def forward(self, batch):
@@ -64,7 +69,11 @@ class OutputNetwork(torch.nn.Module):
         self.Rs = Rs
 
         self.layers = torch.nn.ModuleList([
-            GatedBlock(rs_in, rs_out, scalar_act, rescaled_act.sigmoid, conv) for rs_in, rs_out in zip(Rs, Rs[1:])
+            GatedBlock(
+                partial(conv, rs_in),
+                rs_out,
+                scalar_act,
+                rescaled_act.sigmoid) for rs_in, rs_out in zip(Rs, Rs[1:])
         ])
 
     def forward(self, batch):
@@ -84,6 +93,9 @@ def main():
 
     # basic settings
     os.makedirs(args.model_dir, exist_ok=True)
+    # if args.model_dir[-1] is not '/':
+    #     torch.save(args, args.model_dir + "/" + "args.pkl")
+    # else:
     torch.save(args, args.model_dir + "args.pkl")
     properties = [QM9.U0]
 
