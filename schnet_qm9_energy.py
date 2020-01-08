@@ -91,7 +91,7 @@ class ShoutHook(spk.hooks.Hook):
         self.counter = 0
 
     def on_epoch_begin(self, trainer):
-        logging.info(f"epoch {0}")
+        logging.info(f"epoch {self.counter}")
         self.counter += 1
 
 
