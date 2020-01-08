@@ -40,7 +40,6 @@ class Network(torch.nn.Module):
 
         qm9_max_z = 10
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=0)])
-        # TODO this has changed in e3nn
         self.layers += [
             GatedBlock(
                 partial(conv, rs_in),
@@ -93,9 +92,6 @@ def main():
 
     # basic settings
     os.makedirs(args.model_dir, exist_ok=True)
-    # if args.model_dir[-1] is not '/':
-    #     torch.save(args, args.model_dir + "/" + "args.pkl")
-    # else:
     torch.save(args, args.model_dir + "args.pkl")
     properties = [QM9.U0]
 
@@ -109,11 +105,7 @@ def main():
         split_file=os.path.join(args.model_dir, "split.npz")
     )
     train_loader = spk.AtomsLoader(train, batch_size=args.bs, shuffle=True, num_workers=args.num_workers)
-    val_loader = spk.AtomsLoader(
-        val,
-        batch_size=args.bs,
-        num_workers=args.num_workers
-    )
+    val_loader = spk.AtomsLoader(val, batch_size=args.bs, num_workers=args.num_workers)
 
     # statistics
     atomrefs = dataset.get_atomref(properties)
