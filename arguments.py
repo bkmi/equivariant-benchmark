@@ -32,8 +32,8 @@ def qm9_energy_parser():
     parser.add_argument("--cpu", action='store_true', help="Only allow cpu.")
     parser.add_argument("--num_workers", type=int, default=4, help="Workers for data loader.")
 
-    parser.add_argument("--embed", type=int, default=128)
-    parser.add_argument("--l0", type=int, default=128)
+    parser.add_argument("--embed", type=int, default=64)
+    parser.add_argument("--l0", type=int, default=64)
     parser.add_argument("--l1", type=int, default=0)
     parser.add_argument("--l2", type=int, default=0)
     parser.add_argument("--l3", type=int, default=0)

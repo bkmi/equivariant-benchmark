@@ -1,6 +1,7 @@
 import logging
 import os
 from functools import partial
+from shutil import rmtree
 
 import torch
 
@@ -84,6 +85,16 @@ class OutputNetwork(torch.nn.Module):
         return features
 
 
+class ShoutHook(spk.hooks.Hook):
+    def __init__(self):
+        super(ShoutHook, self).__init__()
+        self.counter = 0
+
+    def on_epoch_begin(self, trainer):
+        logging.info(f"epoch {0}")
+        self.counter += 1
+
+
 def main():
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
@@ -91,7 +102,11 @@ def main():
     args = parser.parse_args()
 
     # basic settings
-    os.makedirs(args.model_dir, exist_ok=True)
+    try:
+        os.makedirs(args.model_dir)
+    except FileExistsError:
+        rmtree(args.model_dir, ignore_errors=True)
+        os.makedirs(args.model_dir)
     torch.save(args, args.model_dir + "args.pkl")
     properties = [QM9.U0]
 
@@ -129,8 +144,9 @@ def main():
 
     conv = convolution(args)
     sp = rescaled_act.Softplus(beta=5.0)
+    ident = torch.nn.Identity()
     net = Network(conv=conv, embed=args.embed, l0=args.l0, l1=args.l1, l2=args.l2, l3=args.l3, L=args.L, scalar_act=sp)
-    outnet = OutputNetwork(conv=conv, previous_Rs=net.Rs[-1], scalar_act=sp)
+    outnet = OutputNetwork(conv=conv, previous_Rs=net.Rs[-1], scalar_act=ident)
     output_modules = [
         spk.atomistic.Atomwise(
             property=QM9.U0,
@@ -149,7 +165,8 @@ def main():
     logging.info("build trainer")
     metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
     hooks = [spk.train.CSVHook(log_path=args.model_dir, metrics=metrics),
-             spk.train.ReduceLROnPlateauHook(optimizer)]
+             spk.train.ReduceLROnPlateauHook(optimizer),
+             ShoutHook()]
 
     # trainer
     loss = spk.train.build_mse_loss(properties)
