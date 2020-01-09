@@ -1,5 +1,6 @@
 import logging
 import os
+import argparse
 from functools import partial
 from shutil import rmtree
 
@@ -98,7 +99,7 @@ class ShoutHook(spk.hooks.Hook):
 def main():
     logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 
-    parser = qm9_energy_parser()
+    parser = argparse.ArgumentParser(parents=qm9_energy_parser())
     args = parser.parse_args()
 
     # basic settings
