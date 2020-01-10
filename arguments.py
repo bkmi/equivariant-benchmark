@@ -73,9 +73,11 @@ def qm9_property_selector():
 def train_parser():
     parser = ArgumentParser(add_help=False)
     parser.add_argument("--model_dir", type=directory_format, required=True, help="Directory to save model.")
-    parser.add_argument("--split_file", type=str, default="", help="A split.npz file. Loads if exists, writes if not.")
     parser.add_argument("--overwrite", action='store_true', help="When set, overwrite content of model_dir.")
+
     parser.add_argument("--db", type=str, required=True, help="Path to database.")
+    parser.add_argument("--split_file", type=str, default="", help="A split.npz file. Loads if exists, writes if not.")
+
     parser.add_argument("--wall", type=float, required=True, help="If calculation time is too long, break.")
     parser.add_argument("--cpu", action='store_true', help="Only allow cpu.")
     parser.add_argument("--num_workers", type=int, default=4, help="Workers for data loader.")
@@ -83,9 +85,13 @@ def train_parser():
     parser.add_argument("--ntr", type=int, default=1000, help="Number of training examples.")
     parser.add_argument("--nva", type=int, default=100, help="Number of validation examples.")
 
-    parser.add_argument("--epochs", type=int, required=True, help="Number of epochs.")
+    parser.add_argument("--epochs", type=int, help="Number of epochs.")
     parser.add_argument("--bs", type=int, default=16, help="Batch size.")
-    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate.")
+    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate.")
+
+    parser.add_argument("--min_lr", type=float, default=1e-6, help="Learning rate.")
+    parser.add_argument("--reduce_lr_patience", type=int, default=24, help="Number of epochs to reduce lr.")
+    parser.add_argument("--early_stop_patience", type=int, default=50, help="Number of epochs before training stops.")
 
     parser.add_argument("--embed", type=int, default=64)
     parser.add_argument("--l0", type=int, default=64)
