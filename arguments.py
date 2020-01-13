@@ -46,18 +46,18 @@ def train_parser():
 
     parser.add_argument("--wall", type=float, required=True, help="If calculation time is too long, break.")
     parser.add_argument("--cpu", action='store_true', help="Only allow cpu.")
-    parser.add_argument("--num_workers", type=int, default=4, help="Workers for data loader.")
+    parser.add_argument("--num_workers", type=int, default=2, help="Workers for data loader.")
 
     parser.add_argument("--ntr", type=int, default=1000, help="Number of training examples.")
     parser.add_argument("--nva", type=int, default=100, help="Number of validation examples.")
 
     parser.add_argument("--epochs", type=int, help="Number of epochs.")
     parser.add_argument("--bs", type=int, default=16, help="Batch size.")
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate.")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate.")
 
     parser.add_argument("--min_lr", type=float, default=1e-6, help="Learning rate.")
-    parser.add_argument("--reduce_lr_patience", type=int, default=24, help="Number of epochs to reduce lr.")
-    parser.add_argument("--early_stop_patience", type=int, default=50, help="Number of epochs before training stops.")
+    parser.add_argument("--reduce_lr_patience", type=int, default=25, help="Number of epochs to reduce lr.")
+    parser.add_argument("--early_stop_patience", type=int, default=51, help="Number of epochs before training stops.")
 
     parser.add_argument("--embed", type=int, default=64)
     parser.add_argument("--l0", type=int, default=64)
@@ -68,7 +68,7 @@ def train_parser():
 
     parser.add_argument("--rad_nb", type=int, default=25, help="Radial number of bases.")
     parser.add_argument("--rad_maxr", type=float, default=5.0, help="Max radius.")
-    parser.add_argument("--rad_h", type=int, default=128, help="Size of radial weight parameters.")
+    parser.add_argument("--rad_h", type=int, default=64, help="Size of radial weight parameters.")
     parser.add_argument("--rad_L", type=int, default=2, help="Number of radial layers.")
 
     parser.add_argument("--beta", type=float, default=5.0, help="Softplus and ShiftedSoftplus rescale parameter.")
