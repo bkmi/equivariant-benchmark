@@ -15,11 +15,11 @@ case "$1" in
     done
     ;;
 
-  paper)
-    # Paper sized
+  u0_64)
+    # Half schnet paper sized
     target="U0"
     split_file="paper_split.npz"
-    model_dir=${2:-${today}_${target}_paper}
+    model_dir=${2:-${today}_${target}_u0_64}
     python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
@@ -31,11 +31,11 @@ case "$1" in
         --bs 16
     ;;
 
-  paper_l1)
-    # Paper sized with l1
+  u0_64_l1)
+    # Half schnet paper sized with l1
     target="U0"
     split_file="paper_split.npz"
-    model_dir=${2:-${today}_${target}_paper_l1}
+    model_dir=${2:-${today}_${target}_u0_64_l1}
     python qm9_train.py \
       --model_dir "$model_dir" \
       --split_file "$split_file" \
@@ -47,6 +47,25 @@ case "$1" in
       --bs 16 \
       --l0 32 \
       --l1 10
+    ;;
+
+  u0_128)
+    # Paper sized
+    target="U0"
+    split_file="paper_split.npz"
+    model_dir=${2:-${today}_${target}_u0_128}
+    python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db" \
+        --wall 43200 \
+        --"$target" \
+        --ntr 109000 \
+        --nva 1000 \
+        --bs 100 \
+        --l0 128 \
+        --embed 128 \
+        --rad_h 128
     ;;
 
   *)
