@@ -6,6 +6,7 @@ from shutil import rmtree
 from time import perf_counter
 
 import torch
+import numpy as np
 
 import schnetpack as spk
 from schnetpack.datasets import QM9
@@ -55,9 +56,21 @@ val_loader = spk.AtomsLoader(val, batch_size=args.bs, num_workers=args.num_worke
 
 # statistics
 atomrefs = dataset.get_atomref(properties)
-means, stddevs = train_loader.get_statistics(
-    properties, divide_by_atoms=True, single_atom_ref=atomrefs
-)
+split_npz = np.load(split_file)
+try:
+    logging.info(f"statistics loaded from {split_file}")
+    means = {prop: split_npz[f'{prop}_mean'] for prop in properties}
+    stddevs = {prop: split_npz[f'{prop}_stddev'] for prop in properties}
+except KeyError:
+    means, stddevs = train_loader.get_statistics(
+        properties, divide_by_atoms=True, single_atom_ref=atomrefs
+    )  # TODO, the means are used for the validation data as well which seems wrong to me.
+    np.savez(
+        split_file,
+        **{f'{prop}_mean': means[prop] for prop in properties},
+        **{f'{prop}_stddev': stddevs[prop] for prop in properties},
+        **split_npz
+    )
 
 # model build
 logging.info("build model")
