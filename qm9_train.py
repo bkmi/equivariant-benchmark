@@ -59,8 +59,8 @@ atomrefs = dataset.get_atomref(properties)
 split_npz = np.load(split_file)
 try:
     logging.info(f"statistics loaded from {split_file}")
-    means = {prop: split_npz[f'{prop}_mean'] for prop in properties}
-    stddevs = {prop: split_npz[f'{prop}_stddev'] for prop in properties}
+    means = {prop: torch.from_numpy(split_npz[f'{prop}_mean']) for prop in properties}
+    stddevs = {prop: torch.from_numpy(split_npz[f'{prop}_stddev']) for prop in properties}
 except KeyError:
     means, stddevs = train_loader.get_statistics(
         properties, divide_by_atoms=True, single_atom_ref=atomrefs
