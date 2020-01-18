@@ -40,7 +40,7 @@ case "$1" in
       --model_dir "$model_dir" \
       --split_file "$split_file" \
       --db "$db" \
-      --wall 43200 \
+      --wall 86400 \
       --"$target" \
       --ntr 109000 \
       --nva 1000 \
