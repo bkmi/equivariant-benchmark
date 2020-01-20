@@ -24,7 +24,7 @@ case "$1" in
         --model_dir "$model_dir" \
         --split_file "$split_file" \
         --db "$db" \
-        --wall 43200 \
+        --wall 172800 \
         --"$target" \
         --ntr 109000 \
         --nva 1000 \
@@ -62,7 +62,7 @@ case "$1" in
         --"$target" \
         --ntr 109000 \
         --nva 1000 \
-        --bs 100 \
+        --bs 32 \
         --l0 128 \
         --embed 128 \
         --rad_h 128

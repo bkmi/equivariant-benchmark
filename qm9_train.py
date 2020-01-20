@@ -24,6 +24,7 @@ args = parser.parse_args()
 properties = [vars(QM9)[k] for k, v in vars(args).items() if k in QM9.properties and v]
 if not properties:
     raise ValueError("No properties were selected to train on.")
+device = torch.device("cpu") if args.cpu else torch.device("cuda")
 
 # Build directory
 try:
@@ -134,11 +135,44 @@ class WallHook(spk.hooks.Hook):
             trainer._stop = True
 
 
+class MemoryProfileHook(spk.hooks.Hook):
+    def __init__(self, device_to_profile):
+        super(MemoryProfileHook, self).__init__()
+        self.device = device_to_profile
+        torch.cuda.reset_peak_memory_stats(device=self.device)
+
+    def on_batch_begin(self, trainer, train_batch):
+        logging.debug(f"epoch: {trainer.epoch}")
+        torch.cuda.reset_accumulated_memory_stats()
+
+    def on_batch_end(self, trainer, train_batch, result, loss):
+        memory = {
+            "batch": sum([v.element_size() * v.nelement() for k, v in train_batch.items()]),
+            "allocated": torch.cuda.max_memory_allocated(device=self.device),
+            "cached": torch.cuda.max_memory_cached(device=self.device),
+            # "reserved": torch.cuda.max_memory_reserved(device=self.device),
+        }
+
+        unit, factor = "mb", 1e-6
+        memory = {k: round(v * factor, 1) for k, v in memory.items()}
+
+        logging.debug(f"batch memory: {memory['batch']}")
+        logging.debug(
+            f"Max Stats ({unit}): "
+            f"allocated: {memory['allocated']}, "
+            f"cached: {memory['cached']}, "
+            # f"reserved: {memory['reserved']}"
+        )
+
+
 metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
-hooks = [spk.train.CSVHook(log_path=args.model_dir, metrics=metrics),
-         spk.train.ReduceLROnPlateauHook(optimizer, patience=args.reduce_lr_patience),
-         WallHook(args.wall),
-         spk.train.EarlyStoppingHook(patience=args.early_stop_patience)]
+hooks = [
+    spk.train.CSVHook(log_path=args.model_dir, metrics=metrics),
+    spk.train.ReduceLROnPlateauHook(optimizer, patience=args.reduce_lr_patience),
+    WallHook(args.wall),
+    spk.train.EarlyStoppingHook(patience=args.early_stop_patience),
+    MemoryProfileHook(device),
+]
 
 # trainer
 loss = spk.train.build_mse_loss(properties)
@@ -154,7 +188,6 @@ trainer = spk.train.Trainer(
 
 # run training
 logging.info("training")
-device = torch.device("cpu") if args.cpu else torch.device("cuda")
 logging.info(f"device: {device}")
 n_epochs = args.epochs if args.epochs else sys.maxsize
 logging.info(f"Max epochs {n_epochs}")
