@@ -1,6 +1,7 @@
 #!/bin/bash
 today=$(date +%Y%m%d)
 db="qm9.db"
+prefix="$2"
 
 case "$1" in
   small)
@@ -10,7 +11,7 @@ case "$1" in
 
     for target in $targets
     do
-      model_dir=${today}_${target}
+      model_dir=${prefix}${today}_${target}
       python qm9_train.py --model_dir "$model_dir" --split_file "$split_file" --db "$db" --wall 3500 --"$target"
     done
     ;;
@@ -21,7 +22,7 @@ case "$1" in
 
     for target in $targets
     do
-      model_dir=${today}_${target}_64
+      model_dir=${prefix}${today}_${target}_64
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
@@ -40,7 +41,7 @@ case "$1" in
 
     for target in $targets
     do
-      model_dir=${today}_${target}_64
+      model_dir=${prefix}${today}_${target}_64
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
@@ -60,7 +61,7 @@ case "$1" in
 
     for target in $targets
     do
-      model_dir=${today}_${target}_64_l1
+      model_dir=${prefix}${today}_${target}_64_l1
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
@@ -81,7 +82,7 @@ case "$1" in
 
     for target in $targets
     do
-      model_dir=${today}_${target}_64_l1
+      model_dir=${prefix}${today}_${target}_64_l1
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
