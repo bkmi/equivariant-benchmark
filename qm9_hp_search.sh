@@ -34,6 +34,26 @@ case "$1" in
     done
     ;;
 
+  big3)
+    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    split_file="paper_split.npz"
+
+    for target in $targets
+    do
+      model_dir=${today}_${target}_64
+      python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db" \
+        --wall 43200 \
+        --"$target" \
+        --ntr 109000 \
+        --nva 1000 \
+        --bs 16 \
+        --L 3
+    done
+    ;;
+
   big_l1)
     targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
     split_file="paper_split.npz"
@@ -52,6 +72,28 @@ case "$1" in
         --bs 16 \
         --l0 32 \
         --l1 10
+    done
+    ;;
+
+  big3_l1)
+    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    split_file="paper_split.npz"
+
+    for target in $targets
+    do
+      model_dir=${today}_${target}_64_l1
+      python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db" \
+        --wall 43200 \
+        --"$target" \
+        --ntr 109000 \
+        --nva 1000 \
+        --bs 16 \
+        --l0 32 \
+        --l1 10 \
+        --L 3
     done
     ;;
 
