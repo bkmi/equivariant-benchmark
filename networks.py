@@ -55,6 +55,22 @@ class Network(torch.nn.Module):
         return features
 
 
+class ResNetwork(Network):
+    def __init__(self, conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
+        super(ResNetwork, self).__init__(conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act)
+
+    def forward(self, batch):
+        features, geometry, mask = batch[spk.Properties.Z], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
+        batchwise_num_atoms = mask.sum(dim=-1)
+        embedding = self.layers[0]
+        features = embedding(features)
+        for layer in self.layers[1:]:
+            new_features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            new_features = new_features * mask.unsqueeze(-1)
+            features = features + new_features
+        return features
+
+
 def gate_error(x):
     raise ValueError("There should be no L>0 components in a scalar network.")
 

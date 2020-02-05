@@ -14,7 +14,7 @@ from schnetpack.datasets import QM9
 from e3nn.non_linearities import rescaled_act
 
 from arguments import train_parser, qm9_property_selector
-from networks import convolution, Network, OutputScalarNetwork
+from networks import convolution, Network, OutputScalarNetwork, ResNetwork
 
 # Setup script
 torch.set_default_dtype(torch.float32)
@@ -86,17 +86,30 @@ conv = convolution(
 )
 
 sp = rescaled_act.Softplus(beta=args.beta)
-net = Network(
-    conv=conv,
-    embed=args.embed,
-    l0=args.l0,
-    l1=args.l1,
-    l2=args.l2,
-    l3=args.l3,
-    L=args.L,
-    scalar_act=sp,
-    gate_act=rescaled_act.sigmoid
-)
+if args.res:
+    net = ResNetwork(
+        conv=conv,
+        embed=args.embed,
+        l0=args.l0,
+        l1=args.l1,
+        l2=args.l2,
+        l3=args.l3,
+        L=args.L,
+        scalar_act=sp,
+        gate_act=rescaled_act.sigmoid
+    )
+else:
+    net = Network(
+        conv=conv,
+        embed=args.embed,
+        l0=args.l0,
+        l1=args.l1,
+        l2=args.l2,
+        l3=args.l3,
+        L=args.L,
+        scalar_act=sp,
+        gate_act=rescaled_act.sigmoid
+    )
 
 ident = torch.nn.Identity()
 outnet = OutputScalarNetwork(conv=conv, previous_Rs=net.Rs[-1], scalar_act=ident)

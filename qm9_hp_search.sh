@@ -148,11 +148,28 @@ case "$1" in
         --model_dir "$model_dir" \
         --split_file "$split_file" \
         --db "$db" \
-        --wall 172800 \
+        --wall 86400 \
         --"$target" \
         --ntr 109000 \
         --nva 1000 \
         --bs 16
+    ;;
+
+  u0_64_res)
+    # Half schnet paper sized with resnet
+    target="U0"
+    split_file="paper_split.npz"
+    model_dir=${2:-${today}_${target}_u0_64_res}
+    python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db" \
+        --wall 86400 \
+        --"$target" \
+        --ntr 109000 \
+        --nva 1000 \
+        --bs 16 \
+        --res
     ;;
 
   u0_64_l1)
@@ -182,7 +199,7 @@ case "$1" in
         --model_dir "$model_dir" \
         --split_file "$split_file" \
         --db "$db" \
-        --wall 43200 \
+        --wall 86400 \
         --"$target" \
         --ntr 109000 \
         --nva 1000 \
