@@ -172,6 +172,24 @@ case "$1" in
         --res
     ;;
 
+  u0_64_l1_res)
+    # Half schnet paper sized with resnet and l1
+    target="U0"
+    split_file="paper_split.npz"
+    model_dir=${2:-${today}_${target}_u0_64_l1_res}
+    python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db" \
+        --wall 86400 \
+        --"$target" \
+        --ntr 109000 \
+        --nva 1000 \
+        --bs 16 \
+        --l0 32 \
+        --l1 10
+    ;;
+
   u0_64_l1)
     # Half schnet paper sized with l1
     target="U0"

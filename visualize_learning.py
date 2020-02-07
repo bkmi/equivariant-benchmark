@@ -5,6 +5,18 @@ import pandas as pd
 
 
 TARGETS = sorted("A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv".split())
+SCHNET = """
+https://pubs.acs.org/doi/10.1021/acs.jctc.8b00908
+property    unit	    model   MAE     RMSE    time
+U0          kcal mol–1	SchNet	0.26	0.54	12 h
+U0	        kcal mol–1	ACSF	0.49	0.92	8 h
+U0	        kcal mol–1	wACSF	0.43	0.81	6 h
+
+mu      	Debye   	SchNet	0.020	0.038	13 h
+mu      	Debye   	ACSF	0.064	0.100	8 h
+mu      	Debye   	wACSF	0.064	0.095	8 h
+"""
+SCHNET_BEST = {"U0_MAE": 0.26, "U0_RMSE": 0.54, "mu_MAE": 0.020, "mu_RMSE": 0.038}
 
 
 def pair_targets_directories(parent: str):
@@ -37,10 +49,16 @@ def populate_page(column, parent_directory, axes, label):
     lines = []
 
     for axis, target in zip(axes.flatten(), data.keys()):
-        axis.set_title(target)
-        # axis.plot(data[target])
+        # if column == "MAE":
+        #     if target == "U0":
+        #         axis.axhline(SCHNET_BEST["U0_MAE"])
+        #     elif target == "mu":
+        #         axis.axhline(SCHNET_BEST["mu_MAE"])
+        # line, = axis.plot(data[target],  label=label)
         line, = axis.semilogy(data[target], label=label)
         lines.append(line)
+        axis.set_title(target)
+        # axis.xaxis.set_major_locator(plt.MaxNLocator(3))
     # fig.suptitle(column)
     # fig.tight_layout()
     # fig.show()
