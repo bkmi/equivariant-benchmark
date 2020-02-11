@@ -4,14 +4,14 @@ import torch
 
 import schnetpack as spk
 
-from e3nn.point.kernel import Kernel
+from e3nn.kernel import Kernel
 from e3nn.point.operations import Convolution
-from e3nn.point.radial import CosineBasisModel
+from e3nn.radial import CosineBasisModel
 
 from e3nn.non_linearities.gated_block import GatedBlock
 
 
-def convolution(cutoff, n_bases, n_neurons, n_layers, act):
+def create_kernel(cutoff, n_bases, n_neurons, n_layers, act):
     RadialModel = partial(
         CosineBasisModel,
         max_radius=cutoff,
@@ -21,11 +21,11 @@ def convolution(cutoff, n_bases, n_neurons, n_layers, act):
         act=act
     )
     K = partial(Kernel, RadialModel=RadialModel)
-    return partial(Convolution, K)
+    return K
 
 
 class Network(torch.nn.Module):
-    def __init__(self, conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
+    def __init__(self, kernel, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
         super().__init__()
 
         Rs = [[(embed, 0)]]
@@ -34,38 +34,39 @@ class Network(torch.nn.Module):
         self.Rs = Rs
 
         qm9_max_z = 10
+
+        def make_layer(Rs_in, Rs_out):
+            act = GatedBlock(Rs_out, scalar_act, gate_act)
+            conv = Convolution(kernel, Rs_in, act.Rs_in)
+            return torch.nn.ModuleList([conv, act])  # TODO does this work with old params
+
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=0)])
-        self.layers += [
-            GatedBlock(
-                partial(conv, rs_in),
-                rs_out,
-                scalar_act,
-                gate_act
-            ) for rs_in, rs_out in zip(Rs, Rs[1:])
-        ]
+        self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
 
     def forward(self, batch):
         features, geometry, mask = batch[spk.Properties.Z], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
         batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
-        for layer in self.layers[1:]:
-            features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+        for conv, act in self.layers[1:]:
+            features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
 
 
 class ResNetwork(Network):
-    def __init__(self, conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
-        super(ResNetwork, self).__init__(conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act)
+    def __init__(self, kernel, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
+        super(ResNetwork, self).__init__(kernel, embed, l0, l1, l2, l3, L, scalar_act, gate_act)
 
     def forward(self, batch):
         features, geometry, mask = batch[spk.Properties.Z], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
         batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
-        for layer in self.layers[1:]:
-            new_features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+        for conv, act in self.layers[1:]:
+            new_features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)
             features = features + new_features
         return features
@@ -76,25 +77,25 @@ def gate_error(x):
 
 
 class OutputScalarNetwork(torch.nn.Module):
-    def __init__(self, conv, previous_Rs, scalar_act):
+    def __init__(self, kernel, previous_Rs, scalar_act):
         super(OutputScalarNetwork, self).__init__()
         Rs = [previous_Rs]
         Rs += [[(1, 0)]]
         self.Rs = Rs
 
-        self.layers = torch.nn.ModuleList([
-            GatedBlock(
-                partial(conv, rs_in),
-                rs_out,
-                scalar_act,
-                gate_error) for rs_in, rs_out in zip(Rs, Rs[1:])
-        ])
+        def make_layer(Rs_in, Rs_out):
+            act = GatedBlock(Rs_out, scalar_act, gate_error)
+            conv = Convolution(kernel, Rs_in, act.Rs_in)
+            return torch.nn.ModuleList([conv, act])
+
+        self.layers = torch.nn.ModuleList([make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
 
     def forward(self, batch):
         features, geometry, mask = batch["representation"], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
         batchwise_num_atoms = mask.sum(dim=-1)
-        for layer in self.layers:
-            features = layer(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+        for conv, act in self.layers:
+            features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+            features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
 

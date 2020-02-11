@@ -14,7 +14,7 @@ from schnetpack.datasets import QM9
 from e3nn.non_linearities import rescaled_act
 
 from arguments import train_parser, qm9_property_selector
-from networks import convolution, Network, OutputScalarNetwork, ResNetwork
+from networks import create_kernel, Network, OutputScalarNetwork, ResNetwork
 
 # Setup script
 torch.set_default_dtype(torch.float32)
@@ -77,7 +77,7 @@ except KeyError:
 logging.info("build model")
 
 ssp = rescaled_act.ShiftedSoftplus(beta=args.beta)
-conv = convolution(
+kernel = create_kernel(
     cutoff=args.rad_maxr,
     n_bases=args.rad_nb,
     n_neurons=args.rad_h,
@@ -85,10 +85,11 @@ conv = convolution(
     act=ssp
 )
 
+
 sp = rescaled_act.Softplus(beta=args.beta)
 if args.res:
     net = ResNetwork(
-        conv=conv,
+        kernel=kernel,
         embed=args.embed,
         l0=args.l0,
         l1=args.l1,
@@ -100,7 +101,7 @@ if args.res:
     )
 else:
     net = Network(
-        conv=conv,
+        kernel=kernel,
         embed=args.embed,
         l0=args.l0,
         l1=args.l1,
@@ -112,7 +113,7 @@ else:
     )
 
 ident = torch.nn.Identity()
-outnet = OutputScalarNetwork(conv=conv, previous_Rs=net.Rs[-1], scalar_act=ident)
+outnet = OutputScalarNetwork(kernel=kernel, previous_Rs=net.Rs[-1], scalar_act=ident)
 
 output_modules = [
     spk.atomistic.Atomwise(
