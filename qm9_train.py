@@ -40,7 +40,17 @@ def create_or_load_directory(args):
             torch.save(args, args.model_dir + "args.pkl")
         else:
             logging.warning("Loading from checkpoint, continuing using SAVED args.")
+            new_model_dir = args.model_dir
             args = torch.load(args.model_dir + "args.pkl")
+            # Update problem args
+            args.model_dir = new_model_dir
+
+    # Fix new options
+    try:
+        args.res
+    except AttributeError:
+        args.res = False
+
     return args
 
 
@@ -218,10 +228,15 @@ def main(evaluate):
         from evaluation import evaluate
 
         test_loader = spk.AtomsLoader(test, batch_size=args.bs, num_workers=args.num_workers)
+        loaders = dict(
+            train=train_loader,
+            validation=val_loader,
+            test=test_loader,
+        )
         evaluate(
             args.model_dir,
             model,
-            dict(train=train_loader, validation=val_loader, test=test_loader),
+            loaders,
             device,
             metrics
         )
@@ -235,4 +250,4 @@ def main(evaluate):
 
 
 if __name__ == '__main__':
-    main(evaluate=False)
+    main(evaluate=True)
