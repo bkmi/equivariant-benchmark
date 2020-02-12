@@ -16,29 +16,42 @@ from e3nn.non_linearities import rescaled_act
 from arguments import train_parser, qm9_property_selector
 from networks import convolution, Network, OutputScalarNetwork, ResNetwork
 
+
+def configuration(args):
+    torch.set_default_dtype(torch.float32)
+    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+    if torch.cuda.is_available() and not args.cpu:
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    return device
+
+
+def create_or_load_directory(args):
+    try:
+        os.makedirs(args.model_dir)
+        torch.save(args, args.model_dir + "args.pkl")
+    except FileExistsError:
+        logging.warning(f"Model directory {args.model_dir} exists.")
+        if args.overwrite:
+            logging.warning("Overwriting.")
+            rmtree(args.model_dir)
+            os.makedirs(args.model_dir)
+            torch.save(args, args.model_dir + "args.pkl")
+        else:
+            logging.warning("Loading from checkpoint, continuing using SAVED args.")
+            args = torch.load(args.model_dir + "args.pkl")
+    return args
+
+
 # Setup script
-torch.set_default_dtype(torch.float32)
-logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 parser = argparse.ArgumentParser(parents=[train_parser(), qm9_property_selector()])
 args = parser.parse_args()
+device = configuration(args)
+args = create_or_load_directory(args)
 properties = [vars(QM9)[k] for k, v in vars(args).items() if k in QM9.properties and v]
 if not properties:
     raise ValueError("No properties were selected to train on.")
-device = torch.device("cpu") if args.cpu else torch.device("cuda")
-
-# Build directory
-try:
-    os.makedirs(args.model_dir)
-except FileExistsError:
-    logging.warning(f"Model directory {args.model_dir} exists.")
-    if args.overwrite:
-        logging.warning("Overwriting.")
-        rmtree(args.model_dir)
-        os.makedirs(args.model_dir)
-    else:
-        logging.warning("Loading from checkpoint.")
-
-torch.save(args, args.model_dir + "args.pkl")
 
 # data preparation
 logging.info("get dataset")
