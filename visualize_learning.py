@@ -81,14 +81,14 @@ def populate_page(column, parent_directory, axes, label):
     return lines
 
 
-def main():
+def all_targets():
     columns = ["Train loss", "Validation loss", "MAE"]
     for column in columns:
         fig, axes = plt.subplots(5, 3, sharex=True, figsize=(10, 8), dpi=200)
-        l0_lines = populate_page(column, "big", axes, "L0")
-        l0l1_lines = populate_page(column, "big_l1", axes, "L0 & L1")
-        l0_deep3_lines = populate_page(column, "big3", axes, "L0 shallow")
-        l0l1_deep3_lines = populate_page(column, "big3_l1", axes, "L0 & L1 shallow")
+        l0_lines = populate_page(column, "big_swift", axes, "L0")
+        l0l1_lines = populate_page(column, "big_l1_tesseract", axes, "L0 & L1")
+        l0_deep3_lines = populate_page(column, "big_3layer_tesseract", axes, "L0 shallow")
+        l0l1_deep3_lines = populate_page(column, "big_3layer_l1_tesseract", axes, "L0 & L1 shallow")
         fig.legend(
             (l0_lines[0], l0l1_lines[0], l0_deep3_lines[0], l0l1_deep3_lines[0]),
             ("L0", "L0 & L1", "L0 shallow", "L0 & L1 shallow")
@@ -98,5 +98,26 @@ def main():
         fig.show()
 
 
+def u0():
+    df_u0 = pd.read_csv("big_swift/20200123_U0_64/log.csv")
+    df_u0_l1 = pd.read_csv("big_l1_tesseract/20200122_U0_64_l1/log.csv")
+    df_u0_res = pd.read_csv("u0_res_swift/log.csv")
+    df_u0_res_l1 = pd.read_csv("u0_res_l1_swift/log.csv")
+    columns = ["Train loss", "Validation loss", "MAE_energy_U0"]
+    for column in columns:
+        fig, axis = plt.subplots(figsize=(10/3, 8/3), dpi=200)
+        axis.semilogy(df_u0[column], label="L0")
+        axis.semilogy(df_u0_l1[column], label="L0 & L1 ")
+        axis.semilogy(df_u0_res[column], label="L0 residual")
+        axis.semilogy(df_u0_res_l1[column], label="L0 & L1 residual")
+        fig.legend()
+        fig.tight_layout()
+        fig.savefig("u0_" + column.lower().replace(' ', '_') + '.png')
+        fig.show()
+
+
+
+
 if __name__ == '__main__':
-    main()
+    # all_targets()
+    u0()
