@@ -13,6 +13,7 @@ from schnetpack.datasets import QM9
 
 from e3nn.non_linearities import rescaled_act
 
+from evaluation import evaluate, record_versions
 from arguments import train_parser, qm9_property_selector
 from networks import convolution, Network, OutputScalarNetwork, ResNetwork
 
@@ -30,18 +31,20 @@ def configuration(args):
 def create_or_load_directory(args):
     try:
         os.makedirs(args.model_dir)
-        torch.save(args, args.model_dir + "args.pkl")
+        torch.save(args, os.path.join(args.model_dir, "args.pkl"))
+        record_versions(os.path.join(args.model_dir + "versions.txt"))
     except FileExistsError:
         logging.warning(f"Model directory {args.model_dir} exists.")
         if args.overwrite:
             logging.warning("Overwriting.")
             rmtree(args.model_dir)
             os.makedirs(args.model_dir)
-            torch.save(args, args.model_dir + "args.pkl")
+            torch.save(args, os.path.join(args.model_dir, "args.pkl"))
+            record_versions(os.path.join(args.model_dir + "versions.txt"))
         else:
             logging.warning("Loading from checkpoint, continuing using SAVED args.")
             new_model_dir = args.model_dir
-            args = torch.load(args.model_dir + "args.pkl")
+            args = torch.load(os.path.join(args.model_dir, "args.pkl"))
             # Update problem args
             args.model_dir = new_model_dir
 
@@ -99,7 +102,7 @@ class MemoryProfileHook(spk.hooks.Hook):
         )
 
 
-def main(evaluate):
+def main(evaluate_test):
     # Setup script
     parser = argparse.ArgumentParser(parents=[train_parser(), qm9_property_selector()])
     args = parser.parse_args()
@@ -223,10 +226,7 @@ def main(evaluate):
         validation_loader=val_loader,
     )
 
-    if evaluate:
-        # evaluate
-        from evaluation import evaluate
-
+    if evaluate_test:
         test_loader = spk.AtomsLoader(test, batch_size=args.bs, num_workers=args.num_workers)
         loaders = dict(
             train=train_loader,
@@ -240,8 +240,8 @@ def main(evaluate):
             device,
             metrics
         )
+
     else:
-        # run training
         logging.info("training")
         logging.info(f"device: {device}")
         n_epochs = args.epochs if args.epochs else sys.maxsize
@@ -250,4 +250,4 @@ def main(evaluate):
 
 
 if __name__ == '__main__':
-    main(evaluate=True)
+    main(evaluate_test=True)

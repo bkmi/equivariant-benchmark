@@ -1,5 +1,10 @@
 import os
 import csv
+import subprocess
+import schnetpack
+import datetime
+
+import e3nn
 
 
 def evaluate(
@@ -43,8 +48,27 @@ def evaluate_dataset(metrics, model, loader, device):
     return results
 
 
+def record_versions(record):
+    if os.path.exists(record):
+        raise FileExistsError(f"{record} already exists.")
+
+    with open(record, 'w', newline='\n') as f:
+        f.write(str(datetime.datetime.now()) + "\n")
+
+        for file in [__file__, e3nn.__file__, schnetpack.__file__]:
+            directory = os.path.dirname(file)
+            f.write(str(directory) + '\n')
+            commands = [
+                f"git -C {directory} rev-parse HEAD",
+                f"git -C {directory} branch -vv",
+                f"git -C {directory} remote -v"
+            ]
+            for command in commands:
+                f.write(subprocess.run(command.split(), capture_output=True).stdout.decode() + '\n')
+
+
 def main():
-    pass
+    record_versions("test.txt")
 
 
 if __name__ == '__main__':
