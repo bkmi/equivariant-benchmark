@@ -32,10 +32,10 @@ def extract_evaluations(parent):
 
 def main():
     parent_directories = [
-        # 'big',
-        'big_l1',
-        'big3',
-        'big3_l1'
+        "big_swift",
+        "big_l1_tesseract",
+        "big_3layer_tesseract",
+        "big_3layer_l1_tesseract"
     ]
     names = [
         'l0',
