@@ -16,7 +16,23 @@ mu      	Debye   	SchNet	0.020	0.038	13 h
 mu      	Debye   	ACSF	0.064	0.100	8 h
 mu      	Debye   	wACSF	0.064	0.095	8 h
 """
-SCHNET_BEST = {"U0_MAE": 0.26, "U0_RMSE": 0.54, "mu_MAE": 0.020, "mu_RMSE": 0.038}
+SCHNET2 = """
+Name                       MAE        unit
+dipole_moment              0.021     Debye
+electronic_spatial_extent  0.158   Bohr**2
+energy_U                   0.012        eV
+energy_U0                  0.012        eV
+enthalpy_H                 0.012        eV
+free_energy                0.013        eV
+gap                        0.074        eV
+heat_capacity              0.034  Kcal/mol
+homo                       0.047        eV
+isotropic_polarizability   0.124   Bohr**3
+lumo                       0.039        eV
+zpve                       1.616       meV
+"""
+
+SCHNET_BEST = {"U0_MAE": 0.012, "mu_MAE": 0.021}
 
 
 def pair_targets_directories(parent: str):
@@ -65,16 +81,43 @@ def populate_page(column, parent_directory, axes, label):
     return lines
 
 
-def main():
+def all_targets():
     columns = ["Train loss", "Validation loss", "MAE"]
     for column in columns:
         fig, axes = plt.subplots(5, 3, sharex=True, figsize=(10, 8), dpi=200)
-        l0_lines = populate_page(column, "big", axes, "L0")
-        l0l1_lines = populate_page(column, "from_tesseract", axes, "L0 & L1")
-        fig.legend((l0_lines[0], l0l1_lines[0]), ("L0", "L0 & L1"))
+        l0_lines = populate_page(column, "big_swift", axes, "L0")
+        l0l1_lines = populate_page(column, "big_l1_tesseract", axes, "L0 & L1")
+        l0_deep3_lines = populate_page(column, "big_3layer_tesseract", axes, "L0 shallow")
+        l0l1_deep3_lines = populate_page(column, "big_3layer_l1_tesseract", axes, "L0 & L1 shallow")
+        fig.legend(
+            (l0_lines[0], l0l1_lines[0], l0_deep3_lines[0], l0l1_deep3_lines[0]),
+            ("L0", "L0 & L1", "L0 shallow", "L0 & L1 shallow")
+        )
         fig.tight_layout()
+        fig.savefig(column.lower().replace(' ', '_') + '.png')
         fig.show()
 
 
+def u0():
+    df_u0 = pd.read_csv("big_swift/20200123_U0_64/log.csv")
+    df_u0_l1 = pd.read_csv("big_l1_tesseract/20200122_U0_64_l1/log.csv")
+    df_u0_res = pd.read_csv("u0_res_swift/log.csv")
+    df_u0_res_l1 = pd.read_csv("u0_res_l1_swift/log.csv")
+    columns = ["Train loss", "Validation loss", "MAE_energy_U0"]
+    for column in columns:
+        fig, axis = plt.subplots(figsize=(10/3, 8/3), dpi=200)
+        axis.semilogy(df_u0[column], label="L0")
+        axis.semilogy(df_u0_l1[column], label="L0 & L1 ")
+        axis.semilogy(df_u0_res[column], label="L0 residual")
+        axis.semilogy(df_u0_res_l1[column], label="L0 & L1 residual")
+        fig.legend()
+        fig.tight_layout()
+        fig.savefig("u0_" + column.lower().replace(' ', '_') + '.png')
+        fig.show()
+
+
+
+
 if __name__ == '__main__':
-    main()
+    # all_targets()
+    u0()
