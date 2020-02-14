@@ -44,9 +44,13 @@ def create_or_load_directory(args):
         else:
             logging.warning("Loading from checkpoint, continuing using SAVED args.")
             new_model_dir = args.model_dir
+            new_split_file = args.split_file
             args = torch.load(os.path.join(args.model_dir, "args.pkl"))
             # Update problem args
             args.model_dir = new_model_dir
+            if new_split_file:
+                args.split_file = new_split_file
+
 
     # Fix new options
     try:
