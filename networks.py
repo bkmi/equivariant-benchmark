@@ -4,7 +4,7 @@ import torch
 
 import schnetpack as spk
 
-from e3nn.kernel import Kernel
+from e3nn.kernel import Kernel, HalfKernel
 from e3nn.point.operations import Convolution
 from e3nn.radial import CosineBasisModel
 
@@ -20,7 +20,7 @@ def create_kernel(cutoff, n_bases, n_neurons, n_layers, act):
         L=n_layers,
         act=act
     )
-    K = partial(Kernel, RadialModel=RadialModel)
+    K = partial(HalfKernel, RadialModel=RadialModel)
     return K
 
 
