@@ -201,8 +201,9 @@ def main():
         spk.train.ReduceLROnPlateauHook(optimizer, patience=args.reduce_lr_patience),
         WallHook(args.wall),
         spk.train.EarlyStoppingHook(patience=args.early_stop_patience),
-        MemoryProfileHook(device),
     ]
+    if not args.cpu:
+        hooks += [MemoryProfileHook(device)]
 
     # trainer
     loss = spk.train.build_mse_loss(properties)
