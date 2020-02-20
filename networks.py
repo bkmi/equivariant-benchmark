@@ -20,7 +20,8 @@ def create_kernel(cutoff, n_bases, n_neurons, n_layers, act):
         L=n_layers,
         act=act
     )
-    K = partial(HalfKernel, RadialModel=RadialModel)
+    # K = partial(HalfKernel, RadialModel=RadialModel)
+    K = partial(Kernel, RadialModel=RadialModel)
     return K
 
 
@@ -38,7 +39,7 @@ class Network(torch.nn.Module):
         def make_layer(Rs_in, Rs_out):
             act = GatedBlock(Rs_out, scalar_act, gate_act)
             conv = Convolution(kernel, Rs_in, act.Rs_in)
-            return torch.nn.ModuleList([conv, act])  # TODO does this work with old params
+            return torch.nn.ModuleList([conv, act])
 
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=0)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
