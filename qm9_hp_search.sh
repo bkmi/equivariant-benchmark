@@ -227,6 +227,84 @@ case "$1" in
         --rad_h 128
     ;;
 
+  # Added 20.02.2020
+  mu_u0_128_res)
+    targets="mu U0"
+    split_file="paper_split_tesseract.npz"
+
+    for target in $targets
+    do
+      model_dir=${prefix}${today}_${target}
+      python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db" \
+        --wall 86400 \
+        --"$target" \
+        --ntr 109000 \
+        --nva 1000 \
+        --bs 8 \
+        --l0 128 \
+        --embed 128 \
+        --rad_h 128 \
+        --res \
+        --reduce_lr_patience 6
+    done
+    ;;
+
+  # Added 20.02.2020
+  mu_u0_128_l1_res)
+    targets="mu U0"
+    split_file="paper_split_tesseract.npz"
+
+    for target in $targets
+    do
+      model_dir=${prefix}${today}_${target}
+      python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db" \
+        --wall 86400 \
+        --"$target" \
+        --ntr 109000 \
+        --nva 1000 \
+        --bs 8 \
+        --l0 64 \
+        --l1 21 \
+        --embed 128 \
+        --rad_h 128 \
+        --res \
+        --reduce_lr_patience 6
+    done
+    ;;
+
+  # Added 20.02.2020
+  mu_u0_128_l1l2_res)
+    targets="mu U0"
+    split_file="paper_split_tesseract.npz"
+
+    for target in $targets
+    do
+      model_dir=${prefix}${today}_${target}
+      python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db" \
+        --wall 86400 \
+        --"$target" \
+        --ntr 109000 \
+        --nva 1000 \
+        --bs 8 \
+        --l0 42 \
+        --l1 14 \
+        --l2 8 \
+        --embed 128 \
+        --rad_h 128 \
+        --res \
+        --reduce_lr_patience 6
+    done
+    ;;
+
   *)
     echo "$1" is not a possible argument.
     exit 1

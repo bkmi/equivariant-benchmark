@@ -4,22 +4,34 @@ import torch
 
 import schnetpack as spk
 
-from e3nn.kernel import Kernel, HalfKernel
+from e3nn.kernel import Kernel
 from e3nn.point.operations import Convolution
-from e3nn.radial import CosineBasisModel
+from e3nn.radial import CosineBasisModel, GaussianRadialModel
 
 from e3nn.non_linearities.gated_block import GatedBlock
 
 
-def create_kernel(cutoff, n_bases, n_neurons, n_layers, act):
-    RadialModel = partial(
-        CosineBasisModel,
-        max_radius=cutoff,
-        number_of_basis=n_bases,
-        h=n_neurons,
-        L=n_layers,
-        act=act
-    )
+def create_kernel(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
+    if radial_model == "cosine":
+        RadialModel = partial(
+            CosineBasisModel,
+            max_radius=cutoff,
+            number_of_basis=n_bases,
+            h=n_neurons,
+            L=n_layers,
+            act=act
+        )
+    elif radial_model == "gaussian":
+        RadialModel = partial(
+            CosineBasisModel,
+            max_radius=cutoff,
+            number_of_basis=n_bases,
+            h=n_neurons,
+            L=n_layers,
+            act=act
+        )
+    else:
+        raise ValueError("radial_model must be either cosine or gaussian")
     # K = partial(HalfKernel, RadialModel=RadialModel)
     K = partial(Kernel, RadialModel=RadialModel)
     return K
@@ -65,7 +77,10 @@ class ResNetwork(Network):
         batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
-        for conv, act in self.layers[1:]:
+        conv, act = self.layers[1]
+        features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+        features = act(features)
+        for conv, act in self.layers[2:]:
             new_features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
             new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)

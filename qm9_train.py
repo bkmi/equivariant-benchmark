@@ -89,7 +89,8 @@ def create_model(args, atomrefs, means, stddevs, properties):
         n_bases=args.rad_nb,
         n_neurons=args.rad_h,
         n_layers=args.rad_L,
-        act=ssp
+        act=ssp,
+        radial_model=args.radial_model
     )
 
     sp = rescaled_act.Softplus(beta=args.beta)
@@ -202,7 +203,7 @@ def main():
         WallHook(args.wall),
         spk.train.EarlyStoppingHook(patience=args.early_stop_patience),
     ]
-    if not args.cpu:
+    if not args.cpu and logging.root.level <= logging.DEBUG:
         hooks += [MemoryProfileHook(device)]
 
     # trainer
