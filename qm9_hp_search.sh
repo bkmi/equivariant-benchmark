@@ -305,6 +305,19 @@ case "$1" in
     done
     ;;
 
+  # Added 22.02.2020
+  continue)
+    for i in "${@:2}" # iterate through second argument and beyond
+    do
+      model_dir="$i"
+      python qm9_train.py \
+        --model_dir "$model_dir" \
+        --wall 86400 \
+        --split_file this_is_not_used \
+        --db this_is_not_used
+    done
+    ;;
+
   *)
     echo "$1" is not a possible argument.
     exit 1
