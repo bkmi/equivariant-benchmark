@@ -13,6 +13,7 @@ def evaluate(
     loaders: dict,
     device,
     metrics,
+    file="evaluation.csv",
     custom_header=None,
 ):
     header = []
@@ -25,7 +26,7 @@ def evaluate(
     if custom_header:
         header = custom_header
 
-    eval_file = os.path.join(model_dir, "evaluation.csv")
+    eval_file = os.path.join(model_dir, file)
     with open(eval_file, "w") as file:
         wr = csv.writer(file)
         wr.writerow(header)
@@ -54,6 +55,7 @@ def record_versions(record):
 
     with open(record, 'w', newline='\n') as f:
         f.write(str(datetime.datetime.now()) + "\n")
+        f.write(str(os.uname()[1]))
 
         for file in [__file__, e3nn.__file__, schnetpack.__file__]:
             directory = os.path.dirname(file)

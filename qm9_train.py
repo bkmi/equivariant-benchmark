@@ -4,6 +4,7 @@ import sys
 import argparse
 from shutil import rmtree
 from time import perf_counter
+from datetime import date
 
 import torch
 import numpy as np
@@ -15,6 +16,7 @@ from e3nn.non_linearities import rescaled_act
 
 from arguments import train_parser, qm9_property_selector
 from networks import create_kernel, Network, OutputScalarNetwork, ResNetwork
+from evaluation import evaluate, record_versions
 
 
 def configuration(args):
@@ -134,6 +136,42 @@ def create_model(args, atomrefs, means, stddevs, properties):
     model = spk.AtomisticModel(net, output_modules)
     return model
 
+
+def train(args, model, properties, wall, device, train_loader, val_loader):
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
+    # hooks
+    logging.info("build trainer")
+    metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
+    hooks = [
+        spk.train.CSVHook(log_path=args.model_dir, metrics=metrics),
+        spk.train.ReduceLROnPlateauHook(optimizer, patience=args.reduce_lr_patience),
+        WallHook(wall),
+        spk.train.EarlyStoppingHook(patience=args.early_stop_patience),
+    ]
+    if not args.cpu and logging.root.level <= logging.DEBUG:
+        hooks += [MemoryProfileHook(device)]
+
+    # trainer
+    loss = spk.train.build_mse_loss(properties)
+    trainer = spk.train.Trainer(
+        args.model_dir,
+        model=model,
+        hooks=hooks,
+        loss_fn=loss,
+        optimizer=optimizer,
+        train_loader=train_loader,
+        validation_loader=val_loader,
+    )  # This has the side effect of loading the last checkpoint's state_dict
+
+    # run training
+    logging.info("training")
+    logging.info(f"device: {device}")
+    n_epochs = args.epochs if args.epochs else sys.maxsize
+    logging.info(f"Max epochs {n_epochs}")
+    trainer.train(device=device, n_epochs=n_epochs)
+
+
 class WallHook(spk.hooks.Hook):
     def __init__(self, wall_max: float):
         super(WallHook, self).__init__()
@@ -190,42 +228,26 @@ def main():
     if not properties:
         raise ValueError("No properties were selected to train on.")
 
-    dataset, split_file, train_loader, val_loader, _ = get_data(args, properties)
+    dataset, split_file, train_loader, val_loader, test_loader = get_data(args, properties)
     atomrefs, means, stddevs = get_statistics(dataset, split_file, properties, train_loader)
     model = create_model(args, atomrefs, means, stddevs, properties)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-    # hooks
-    logging.info("build trainer")
-    metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
-    hooks = [
-        spk.train.CSVHook(log_path=args.model_dir, metrics=metrics),
-        spk.train.ReduceLROnPlateauHook(optimizer, patience=args.reduce_lr_patience),
-        WallHook(wall),
-        spk.train.EarlyStoppingHook(patience=args.early_stop_patience),
-    ]
-    if not args.cpu and logging.root.level <= logging.DEBUG:
-        hooks += [MemoryProfileHook(device)]
+    train(args, model, properties, wall, device, train_loader, val_loader)
+    record_versions(os.path.join(args.model_dir, f"versions_{os.uname()[1]}_{date.today()}.txt"))
 
-    # trainer
-    loss = spk.train.build_mse_loss(properties)
-    trainer = spk.train.Trainer(
-        args.model_dir,
-        model=model,
-        hooks=hooks,
-        loss_fn=loss,
-        optimizer=optimizer,
-        train_loader=train_loader,
-        validation_loader=val_loader,
-    )
-
-    # run training
-    logging.info("training")
-    logging.info(f"device: {device}")
-    n_epochs = args.epochs if args.epochs else sys.maxsize
-    logging.info(f"Max epochs {n_epochs}")
-    trainer.train(device=device, n_epochs=n_epochs)
-
+    if args.evaluate:
+        evaluation_file = f"{args.evaluate}_{os.uname()[1]}_{date.today()}.csv"
+        logging.info(f"Evaluating test set to file {evaluation_file}")
+        metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
+        metrics += [spk.train.metrics.RootMeanSquaredError(p, p) for p in properties]
+        evaluate(
+            args.model_dir,
+            model,
+            {"test": test_loader},
+            device,
+            metrics,
+            file=evaluation_file
+        )
 
 if __name__ == '__main__':
     main()
