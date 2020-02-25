@@ -30,19 +30,20 @@ def configuration(args):
 
 
 def create_or_load_directory(args):
+    args_file = os.path.join(args.model_dir, "args.pkl")
     try:
         os.makedirs(args.model_dir)
-        torch.save(args, args.model_dir + "args.pkl")
+        torch.save(args, args_file)
     except FileExistsError:
         logging.warning(f"Model directory {args.model_dir} exists.")
         if args.overwrite:
             logging.warning("Overwriting.")
             rmtree(args.model_dir)
             os.makedirs(args.model_dir)
-            torch.save(args, args.model_dir + "args.pkl")
+            torch.save(args, args_file)
         else:
             logging.warning("Loading from checkpoint, continuing using SAVED args.")
-            args = torch.load(args.model_dir + "args.pkl")
+            args = torch.load(args_file)
     return args
 
 

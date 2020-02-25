@@ -1,15 +1,15 @@
 from argparse import ArgumentParser
 
 
-def directory_format(string: str):
-    string = str(string)
-    if string[-1] is "/":
-        pass
-    elif string[-1] is "\\":
-        raise TypeError("Can't use pc format.")
-    else:
-        string += "/"
-    return string
+# def directory_format(string: str):
+#     string = str(string)
+#     if string[-1] is "/":
+#         pass
+#     elif string[-1] is "\\":
+#         raise TypeError("Can't use pc format.")
+#     else:
+#         string += "/"
+#     return string
 
 
 def qm9_property_selector():
@@ -38,7 +38,7 @@ def qm9_property_selector():
 
 def train_parser():
     parser = ArgumentParser(add_help=False)
-    parser.add_argument("--model_dir", type=directory_format, required=True, help="Directory to save model.")
+    parser.add_argument("--model_dir", type=str, required=True, help="Directory to save model.")
     parser.add_argument("--overwrite", action='store_true', help="When set, overwrite content of model_dir.")
 
     parser.add_argument("--evaluate", type=str, default="", help="Set the name for the evaluation csv. If blank, "
@@ -80,6 +80,20 @@ def train_parser():
 
     parser.add_argument("--beta", type=float, default=5.0, help="Softplus and ShiftedSoftplus rescale parameter.")
     return parser
+
+
+def fix_old_args_with_defaults(args):
+    try:
+        args.radial_model
+    except AttributeError:
+        args.radial_model = "cosine"
+
+    try:
+        args.res
+    except AttributeError:
+        args.res = False
+
+    return args
 
 
 if __name__ == '__main__':
