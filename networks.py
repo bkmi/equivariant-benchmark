@@ -23,7 +23,7 @@ def create_kernel(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
         )
     elif radial_model == "gaussian":
         RadialModel = partial(
-            CosineBasisModel,
+            GaussianRadialModel,
             max_radius=cutoff,
             number_of_basis=n_bases,
             h=n_neurons,
@@ -32,7 +32,6 @@ def create_kernel(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
         )
     else:
         raise ValueError("radial_model must be either cosine or gaussian")
-    # K = partial(HalfKernel, RadialModel=RadialModel)
     K = partial(Kernel, RadialModel=RadialModel)
     return K
 
