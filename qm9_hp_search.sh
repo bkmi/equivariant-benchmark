@@ -306,7 +306,7 @@ case "$1" in
     ;;
 
   # Added 28.02.2020
-  mu_u0_128_res)
+  mu_u0_128_res_gauss)
     targets="mu U0"
     split_file="paper_split_tesseract.npz"
 
