@@ -15,7 +15,7 @@ from schnetpack.datasets import QM9
 from e3nn.non_linearities import rescaled_act
 
 from arguments import train_parser, qm9_property_selector
-from networks import create_kernel, Network, OutputScalarNetwork, ResNetwork
+from networks import create_kernel_conv, Network, OutputScalarNetwork, ResNetwork
 from evaluation import evaluate, record_versions
 
 
@@ -87,7 +87,7 @@ def get_statistics(dataset, split_file, properties, train_loader):
 
 def create_model(args, atomrefs, means, stddevs, properties):
     ssp = rescaled_act.ShiftedSoftplus(beta=args.beta)
-    kernel = create_kernel(
+    kernel_conv = create_kernel_conv(
         cutoff=args.rad_maxr,
         n_bases=args.rad_nb,
         n_neurons=args.rad_h,
@@ -99,7 +99,7 @@ def create_model(args, atomrefs, means, stddevs, properties):
     sp = rescaled_act.Softplus(beta=args.beta)
     if args.res:
         net = ResNetwork(
-            kernel=kernel,
+            kernel_conv=kernel_conv,
             embed=args.embed,
             l0=args.l0,
             l1=args.l1,
@@ -111,7 +111,7 @@ def create_model(args, atomrefs, means, stddevs, properties):
         )
     else:
         net = Network(
-            kernel=kernel,
+            kernel_conv=kernel_conv,
             embed=args.embed,
             l0=args.l0,
             l1=args.l1,
@@ -123,7 +123,7 @@ def create_model(args, atomrefs, means, stddevs, properties):
         )
 
     ident = torch.nn.Identity()
-    outnet = OutputScalarNetwork(kernel=kernel, previous_Rs=net.Rs[-1], scalar_act=ident)
+    outnet = OutputScalarNetwork(kernel_conv=kernel_conv, previous_Rs=net.Rs[-1], scalar_act=ident)
 
     output_modules = [
         spk.atomistic.Atomwise(

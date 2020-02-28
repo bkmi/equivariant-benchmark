@@ -4,14 +4,13 @@ import torch
 
 import schnetpack as spk
 
-from e3nn.kernel import Kernel
-from e3nn.point.operations import Convolution
+from e3nn.point.kernelconv import KernelConv
 from e3nn.radial import CosineBasisModel, GaussianRadialModel
 
 from e3nn.non_linearities.gated_block import GatedBlock
 
 
-def create_kernel(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
+def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
     if radial_model == "cosine":
         RadialModel = partial(
             CosineBasisModel,
@@ -32,12 +31,22 @@ def create_kernel(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
         )
     else:
         raise ValueError("radial_model must be either cosine or gaussian")
-    K = partial(Kernel, RadialModel=RadialModel)
+    K = partial(KernelConv, RadialModel=RadialModel)
     return K
 
 
+def constants(batch):
+    one_hot, geometry, mask = batch[spk.Properties.Z], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
+    rb = geometry.unsqueeze(1)  # [batch, 1, b, xyz]
+    ra = geometry.unsqueeze(2)  # [batch, a, 1, xyz]
+    r = rb - ra
+    radii = r.norm(2, dim=-1)
+    # y = o3.spherical_harmonics_xyz(set_of_l_filters, geometry)
+    return one_hot, geometry, mask, r, radii
+
+
 class Network(torch.nn.Module):
-    def __init__(self, kernel, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
+    def __init__(self, kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
         super().__init__()
 
         Rs = [[(embed, 0)]]
@@ -49,38 +58,38 @@ class Network(torch.nn.Module):
 
         def make_layer(Rs_in, Rs_out):
             act = GatedBlock(Rs_out, scalar_act, gate_act)
-            conv = Convolution(kernel, Rs_in, act.Rs_in)
-            return torch.nn.ModuleList([conv, act])
+            kc = kernel_conv(Rs_in, act.Rs_in)
+            return torch.nn.ModuleList([kc, act])
 
         self.layers = torch.nn.ModuleList([torch.nn.Embedding(qm9_max_z, embed, padding_idx=0)])
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
 
     def forward(self, batch):
-        features, geometry, mask = batch[spk.Properties.Z], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
+        features, _, mask, r, radii = constants(batch)
         batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
-        for conv, act in self.layers[1:]:
-            features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+        for kc, act in self.layers[1:]:
+            features = kc(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), r, mask, radii=radii)
             features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
 
 
 class ResNetwork(Network):
-    def __init__(self, kernel, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
-        super(ResNetwork, self).__init__(kernel, embed, l0, l1, l2, l3, L, scalar_act, gate_act)
+    def __init__(self, kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
+        super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act)
 
     def forward(self, batch):
-        features, geometry, mask = batch[spk.Properties.Z], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
+        features, _, mask, r, radii = constants(batch)
         batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
-        conv, act = self.layers[1]
-        features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+        kc, act = self.layers[1]
+        features = kc(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), r, mask, radii=radii)
         features = act(features)
-        for conv, act in self.layers[2:]:
-            new_features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+        for kc, act in self.layers[2:]:
+            new_features = kc(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), r, mask, radii=radii)
             new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)
             features = features + new_features
@@ -92,7 +101,7 @@ def gate_error(x):
 
 
 class OutputScalarNetwork(torch.nn.Module):
-    def __init__(self, kernel, previous_Rs, scalar_act):
+    def __init__(self, kernel_conv, previous_Rs, scalar_act):
         super(OutputScalarNetwork, self).__init__()
         Rs = [previous_Rs]
         Rs += [[(1, 0)]]
@@ -100,16 +109,17 @@ class OutputScalarNetwork(torch.nn.Module):
 
         def make_layer(Rs_in, Rs_out):
             act = GatedBlock(Rs_out, scalar_act, gate_error)
-            conv = Convolution(kernel, Rs_in, act.Rs_in)
-            return torch.nn.ModuleList([conv, act])
+            kc = kernel_conv(Rs_in, act.Rs_in)
+            return torch.nn.ModuleList([kc, act])
 
         self.layers = torch.nn.ModuleList([make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
 
     def forward(self, batch):
-        features, geometry, mask = batch["representation"], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
+        _, _, mask, r, radii = constants(batch)
+        features = batch["representation"]
         batchwise_num_atoms = mask.sum(dim=-1)
-        for conv, act in self.layers:
-            features = conv(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), geometry)
+        for kc, act in self.layers:
+            features = kc(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), r, mask, radii=radii)
             features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
