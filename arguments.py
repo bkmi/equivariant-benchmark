@@ -1,15 +1,15 @@
 from argparse import ArgumentParser
 
 
-def directory_format(string: str):
-    string = str(string)
-    if string[-1] is "/":
-        pass
-    elif string[-1] is "\\":
-        raise TypeError("Can't use pc format.")
-    else:
-        string += "/"
-    return string
+# def directory_format(string: str):
+#     string = str(string)
+#     if string[-1] is "/":
+#         pass
+#     elif string[-1] is "\\":
+#         raise TypeError("Can't use pc format.")
+#     else:
+#         string += "/"
+#     return string
 
 
 def qm9_property_selector():
@@ -38,8 +38,11 @@ def qm9_property_selector():
 
 def train_parser():
     parser = ArgumentParser(add_help=False)
-    parser.add_argument("--model_dir", type=directory_format, required=True, help="Directory to save model.")
+    parser.add_argument("--model_dir", type=str, required=True, help="Directory to save model.")
     parser.add_argument("--overwrite", action='store_true', help="When set, overwrite content of model_dir.")
+
+    parser.add_argument("--evaluate", type=str, default="", help="Set the name for the evaluation csv. If blank, "
+                                                                 "do not evaluate.")
 
     parser.add_argument("--db", type=str, required=True, help="Path to database.")
     parser.add_argument("--split_file", type=str, default="", help="A split.npz file. Loads if exists, writes if not.")
@@ -68,6 +71,8 @@ def train_parser():
 
     parser.add_argument("--res", action='store_true', help="Select a res-net architecture.")
 
+    parser.add_argument("--radial_model", type=str, choices=("cosine", "gaussian"), default="cosine",
+                        help="Radial model.")
     parser.add_argument("--rad_nb", type=int, default=25, help="Radial number of bases.")
     parser.add_argument("--rad_maxr", type=float, default=5.0, help="Max radius.")
     parser.add_argument("--rad_h", type=int, default=64, help="Size of radial weight parameters.")
@@ -75,6 +80,20 @@ def train_parser():
 
     parser.add_argument("--beta", type=float, default=5.0, help="Softplus and ShiftedSoftplus rescale parameter.")
     return parser
+
+
+def fix_old_args_with_defaults(args):
+    try:
+        args.radial_model
+    except AttributeError:
+        args.radial_model = "cosine"
+
+    try:
+        args.res
+    except AttributeError:
+        args.res = False
+
+    return args
 
 
 if __name__ == '__main__':
