@@ -218,10 +218,10 @@ class MemoryProfileHook(spk.hooks.Hook):
             # f"reserved: {memory['reserved']}"
         )
 
-    def on_validation_batch_begin(self):
+    def on_validation_batch_begin(self, trainer):
         torch.cuda.reset_peak_memory_stats(device=self.device)
 
-    def on_validation_batch_end(self, val_batch, val_result):
+    def on_validation_batch_end(self, trainer, val_batch, val_result):
         logging.debug(f"validation batch position shape: {val_batch[spk.Properties.R].shape}")
         memory = {
             "batch": sum([v.element_size() * v.nelement() for k, v in val_batch.items()]),
