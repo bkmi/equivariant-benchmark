@@ -196,7 +196,8 @@ class MemoryProfileHook(spk.hooks.Hook):
 
     def on_batch_begin(self, trainer, train_batch):
         logging.debug(f"epoch: {trainer.epoch}")
-        torch.cuda.reset_accumulated_memory_stats()
+        logging.debug(f"batch position shape: {train_batch[spk.Properties.R].shape}")
+        torch.cuda.reset_peak_memory_stats(device=self.device)
 
     def on_batch_end(self, trainer, train_batch, result, loss):
         memory = {
@@ -212,6 +213,29 @@ class MemoryProfileHook(spk.hooks.Hook):
         logging.debug(f"batch memory: {memory['batch']}")
         logging.debug(
             f"Max Stats ({unit}): "
+            f"allocated: {memory['allocated']}, "
+            f"cached: {memory['cached']}, "
+            # f"reserved: {memory['reserved']}"
+        )
+
+    def on_validation_batch_begin(self):
+        torch.cuda.reset_peak_memory_stats(device=self.device)
+
+    def on_validation_batch_end(self, val_batch, val_result):
+        logging.debug(f"validation batch position shape: {val_batch[spk.Properties.R].shape}")
+        memory = {
+            "batch": sum([v.element_size() * v.nelement() for k, v in val_batch.items()]),
+            "allocated": torch.cuda.max_memory_allocated(device=self.device),
+            "cached": torch.cuda.max_memory_cached(device=self.device),
+            # "reserved": torch.cuda.max_memory_reserved(device=self.device),
+        }
+
+        unit, factor = "mb", 1e-6
+        memory = {k: round(v * factor, 1) for k, v in memory.items()}
+
+        logging.debug(f"validation batch memory: {memory['batch']}")
+        logging.debug(
+            f"Validation Max Stats ({unit}): "
             f"allocated: {memory['allocated']}, "
             f"cached: {memory['cached']}, "
             # f"reserved: {memory['reserved']}"
