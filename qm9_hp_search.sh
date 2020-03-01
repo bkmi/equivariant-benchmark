@@ -2,12 +2,12 @@
 today=$(date +%Y%m%d)
 db="qm9.db"
 prefix="$2"
+split_file="pst.npz"
 
 case "$1" in
   small)
     # Small
     targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
-    split_file="default_split.npz"
 
     for target in $targets
     do
@@ -18,7 +18,6 @@ case "$1" in
 
   big)
     targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
-    split_file="paper_split.npz"
 
     for target in $targets
     do
@@ -37,7 +36,6 @@ case "$1" in
 
   big_narrow)
     targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
-    split_file="paper_split.npz"
 
     for target in $targets
     do
@@ -57,7 +55,6 @@ case "$1" in
 
   big3)
     targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
-    split_file="paper_split.npz"
 
     for target in $targets
     do
@@ -77,7 +74,6 @@ case "$1" in
 
   big_l1)
     targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
-    split_file="paper_split.npz"
 
     for target in $targets
     do
@@ -98,7 +94,6 @@ case "$1" in
 
   big_narrow_l1)
     targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
-    split_file="paper_split.npz"
 
     for target in $targets
     do
@@ -119,8 +114,7 @@ case "$1" in
 
   big3_l1)
     targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
-    split_file="paper_split.npz"
-
+    
     for target in $targets
     do
       model_dir=${prefix}${today}_${target}_64_l1
@@ -142,7 +136,7 @@ case "$1" in
   u0_64)
     # Half schnet paper sized
     target="U0"
-    split_file="paper_split.npz"
+    
     model_dir=${2:-${today}_${target}_u0_64}
     python qm9_train.py \
         --model_dir "$model_dir" \
@@ -158,7 +152,7 @@ case "$1" in
   u0_64_res)
     # Half schnet paper sized with resnet
     target="U0"
-    split_file="paper_split.npz"
+    
     model_dir=${2:-${today}_${target}_u0_64_res}
     python qm9_train.py \
         --model_dir "$model_dir" \
@@ -175,7 +169,7 @@ case "$1" in
   u0_64_l1_res)
     # Half schnet paper sized with resnet and l1
     target="U0"
-    split_file="paper_split.npz"
+    
     model_dir=${2:-${today}_${target}_u0_64_l1_res}
     python qm9_train.py \
         --model_dir "$model_dir" \
@@ -193,7 +187,7 @@ case "$1" in
   u0_64_l1)
     # Half schnet paper sized with l1
     target="U0"
-    split_file="paper_split.npz"
+    
     model_dir=${2:-${today}_${target}_u0_64_l1}
     python qm9_train.py \
       --model_dir "$model_dir" \
@@ -211,7 +205,7 @@ case "$1" in
   u0_128)
     # Paper sized
     target="U0"
-    split_file="paper_split.npz"
+    
     model_dir=${2:-${today}_${target}_u0_128}
     python qm9_train.py \
         --model_dir "$model_dir" \
@@ -230,7 +224,6 @@ case "$1" in
   # Added 20.02.2020
   mu_u0_128_res)
     targets="mu U0"
-    split_file="paper_split_tesseract.npz"
 
     for target in $targets
     do
@@ -255,8 +248,7 @@ case "$1" in
   # Added 20.02.2020
   mu_u0_128_l1_res)
     targets="mu U0"
-    split_file="paper_split_tesseract.npz"
-
+    
     for target in $targets
     do
       model_dir=${prefix}${today}_${target}
@@ -281,7 +273,6 @@ case "$1" in
   # Added 20.02.2020
   mu_u0_128_l1l2_res)
     targets="mu U0"
-    split_file="paper_split_tesseract.npz"
 
     for target in $targets
     do
@@ -308,7 +299,6 @@ case "$1" in
   # Added 28.02.2020
   mu_u0_128_res_gauss)
     targets="mu U0"
-    split_file="paper_split_tesseract.npz"
 
     for target in $targets
     do
@@ -334,7 +324,6 @@ case "$1" in
   # Added 28.02.2020
   mu_u0_128_l1_res_gauss)
     targets="mu U0"
-    split_file="paper_split_tesseract.npz"
 
     for target in $targets
     do
