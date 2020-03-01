@@ -149,6 +149,7 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
         spk.train.ReduceLROnPlateauHook(optimizer, patience=args.reduce_lr_patience),
         WallHook(wall),
         spk.train.EarlyStoppingHook(patience=args.early_stop_patience),
+        NoValidationDerivativeHook()
     ]
     if not args.cpu and logging.root.level <= logging.DEBUG:
         hooks += [MemoryProfileHook(device)]
@@ -186,6 +187,14 @@ class WallHook(spk.hooks.Hook):
         wall = perf_counter() - self.wall_start
         if wall > self.wall_max:
             trainer._stop = True
+
+
+class NoValidationDerivativeHook(spk.hooks.Hook):
+    def on_validation_begin(self, trainer):
+        trainer._model.requires_grad_(False)
+
+    def on_validation_end(self, trainer, val_loss):
+        trainer._model.requires_grad_(True)
 
 
 class MemoryProfileHook(spk.hooks.Hook):
