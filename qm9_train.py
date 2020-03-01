@@ -221,7 +221,7 @@ class MemoryProfileHook(spk.hooks.Hook):
 
         logging.debug(f"batch memory: {memory['batch']}")
         logging.debug(
-            f"Max Stats ({unit}): "
+            f"Training Max Stats ({unit}): "
             f"allocated: {memory['allocated']}, "
             f"cached: {memory['cached']}, "
             # f"reserved: {memory['reserved']}"
