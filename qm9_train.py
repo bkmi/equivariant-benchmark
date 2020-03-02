@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 import argparse
-# import cProfile
 from shutil import rmtree
 from time import perf_counter
 from datetime import date
@@ -191,7 +190,6 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
     n_epochs = args.epochs if args.epochs else sys.maxsize
     logging.info(f"Max epochs {n_epochs}")
     trainer.train(device=device, n_epochs=n_epochs)
-    # cProfile.runctx("trainer.train(device=device, n_epochs=n_epochs)", globals(), locals(), sort='tottime')
 
 
 class WallHook(spk.hooks.Hook):
@@ -286,23 +284,22 @@ def main():
     atomrefs, means, stddevs, avg_n_atoms = get_statistics(dataset, split_file, properties, train_loader)
     model = create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms)
 
-    # cProfile.run("train(args, model, properties, wall, device, train_loader, val_loader)")
     train(args, model, properties, wall, device, train_loader, val_loader)
-    # record_versions(os.path.join(args.model_dir, f"versions_{os.uname()[1]}_{date.today()}.txt"))
-    #
-    # if args.evaluate:
-    #     evaluation_file = f"{args.evaluate}_{os.uname()[1]}_{date.today()}.csv"
-    #     logging.info(f"Evaluating test set to file {evaluation_file}")
-    #     metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
-    #     metrics += [spk.train.metrics.RootMeanSquaredError(p, p) for p in properties]
-    #     evaluate(
-    #         args.model_dir,
-    #         model,
-    #         {"test": test_loader},
-    #         device,
-    #         metrics,
-    #         file=evaluation_file
-    #     )
+    record_versions(os.path.join(args.model_dir, f"versions_{os.uname()[1]}_{date.today()}.txt"))
+
+    if args.evaluate:
+        evaluation_file = f"{args.evaluate}_{os.uname()[1]}_{date.today()}.csv"
+        logging.info(f"Evaluating test set to file {evaluation_file}")
+        metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
+        metrics += [spk.train.metrics.RootMeanSquaredError(p, p) for p in properties]
+        evaluate(
+            args.model_dir,
+            model,
+            {"test": test_loader},
+            device,
+            metrics,
+            file=evaluation_file
+        )
 
 if __name__ == '__main__':
     main()

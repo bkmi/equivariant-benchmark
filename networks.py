@@ -41,7 +41,8 @@ def constants(batch):
     rb = geometry.unsqueeze(1)  # [batch, 1, b, xyz]
     ra = geometry.unsqueeze(2)  # [batch, a, 1, xyz]
     diff_geo = (rb - ra).detach()
-    return one_hot, geometry, mask, diff_geo
+    radii = diff_geo.norm(2, dim=-1).detach()
+    return one_hot, geometry, mask, diff_geo, radii
 
 
 class Network(torch.nn.Module):
@@ -65,11 +66,22 @@ class Network(torch.nn.Module):
         self.layers += [make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])]
 
     def forward(self, batch):
-        features, _, mask, diff_geo = constants(batch)
+        features, _, mask, diff_geo, radii = constants(batch)
         embedding = self.layers[0]
         features = embedding(features)
+        set_of_l_filters = self.layers[1][0].set_of_l_filters
+        y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
         for kc, act in self.layers[1:]:
-            features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask)
+            if kc.set_of_l_filters != set_of_l_filters:
+                set_of_l_filters = kc.set_of_l_filters
+                y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
+            features = kc(
+                features.div(self.avg_n_atoms ** 0.5),
+                diff_geo,
+                mask,
+                y=y,
+                radii=radii
+            )
             features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
@@ -80,14 +92,31 @@ class ResNetwork(Network):
         super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, avg_n_atoms)
 
     def forward(self, batch):
-        features, _, mask, diff_geo = constants(batch)
+        features, _, mask, diff_geo, radii = constants(batch)
         embedding = self.layers[0]
         features = embedding(features)
+        set_of_l_filters = self.layers[1][0].set_of_l_filters
+        y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
         kc, act = self.layers[1]
-        features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask)
+        features = kc(
+            features.div(self.avg_n_atoms ** 0.5),
+            diff_geo,
+            mask,
+            y=y,
+            radii=radii
+        )
         features = act(features)
         for kc, act in self.layers[2:]:
-            new_features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask)
+            if kc.set_of_l_filters != set_of_l_filters:
+                set_of_l_filters = kc.set_of_l_filters
+                y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
+            new_features = kc(
+                features.div(self.avg_n_atoms ** 0.5),
+                diff_geo,
+                mask,
+                y=y,
+                radii=radii
+            )
             new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)
             features = features + new_features
@@ -115,10 +144,10 @@ class OutputScalarNetwork(torch.nn.Module):
         self.layers = torch.nn.ModuleList([make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
 
     def forward(self, batch):
-        _, _, mask, diff_geo = constants(batch)
+        _, _, mask, diff_geo, radii = constants(batch)
         features = batch["representation"]
         for kc, act in self.layers:
-            features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask)
+            features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask, radii=radii)
             features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
