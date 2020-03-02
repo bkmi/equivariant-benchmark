@@ -118,7 +118,7 @@ class OutputScalarNetwork(torch.nn.Module):
         _, _, mask, diff_geo = constants(batch)
         features = batch["representation"]
         for kc, act in self.layers:
-            features = kc(features.div(self.avg_n_atoms.reshape(-1, 1, 1) ** 0.5), diff_geo, mask, radii=radii)
+            features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask)
             features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
