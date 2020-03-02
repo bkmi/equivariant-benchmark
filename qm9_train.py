@@ -173,7 +173,8 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
     n_epochs = args.epochs if args.epochs else sys.maxsize
     logging.info(f"Max epochs {n_epochs}")
     # trainer.train(device=device, n_epochs=n_epochs)
-    cProfile.runctx("trainer.train(device=device, n_epochs=n_epochs)", globals(), locals())
+    cProfile.runctx("trainer.train(device=device, n_epochs=n_epochs)", globals(), locals(), filename='profile.log',
+                    sort='tottime')
 
 
 class WallHook(spk.hooks.Hook):
