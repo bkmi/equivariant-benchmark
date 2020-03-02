@@ -35,8 +35,8 @@ def main():
         raise ValueError("No properties were selected to train on.")
 
     dataset, split_file, train_loader, val_loader, test_loader = get_data(args, properties)
-    atomrefs, means, stddevs = get_statistics(dataset, split_file, properties, train_loader)
-    model = create_model(args, atomrefs, means, stddevs, properties)
+    atomrefs, means, stddevs, avg_n_atoms = get_statistics(dataset, split_file, properties, train_loader)
+    model = create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms)
 
     if args.load_recent:
         checkpoints_dir = os.path.join(args.model_dir, "checkpoints")
@@ -53,7 +53,6 @@ def main():
         chkpt = os.path.join(args.model_dir, 'best_model_state_dict.pth.tar')
         model.load_state_dict(torch.load(chkpt))
     logging.info(f'Loading checkpoint: {chkpt}')
-
 
     evaluation_file = f"{args.evaluate}_{os.uname()[1]}_{date.today()}.csv"
     logging.info(f"Evaluating test set to file {evaluation_file}")

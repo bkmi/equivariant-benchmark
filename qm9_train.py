@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import argparse
-import cProfile
+# import cProfile
 from shutil import rmtree
 from time import perf_counter
 from datetime import date
@@ -69,6 +69,7 @@ def get_statistics(dataset, split_file, properties, train_loader):
     atomrefs = dataset.get_atomref(properties)
     split_npz = np.load(split_file)
     try:
+        avg_n_atoms = torch.from_numpy(split_npz['avg_n_atoms'])
         means = {prop: torch.from_numpy(split_npz[f'{prop}_mean']) for prop in properties}
         stddevs = {prop: torch.from_numpy(split_npz[f'{prop}_stddev']) for prop in properties}
         logging.info(f"statistics loaded from {split_file}")
@@ -76,17 +77,27 @@ def get_statistics(dataset, split_file, properties, train_loader):
         means, stddevs = train_loader.get_statistics(
             properties, divide_by_atoms=True, single_atom_ref=atomrefs
         )  # TODO, the means are used for the validation data as well which seems wrong to me.
+
+        n_atoms = 0
+        molecules = 0
+        for batch in train_loader:
+            mask = batch[spk.Properties.atom_mask]
+            molecules += mask.size(0)
+            n_atoms += mask.sum().item()
+        avg_n_atoms = n_atoms / molecules
+
         np.savez(
             split_file,
+            **{'avg_n_atoms': avg_n_atoms},
             **{f'{prop}_mean': means[prop] for prop in properties},
             **{f'{prop}_stddev': stddevs[prop] for prop in properties},
             **split_npz
         )
         logging.info(f"statistics saved to {split_file}")
-    return atomrefs, means, stddevs
+    return atomrefs, means, stddevs, avg_n_atoms
 
 
-def create_model(args, atomrefs, means, stddevs, properties):
+def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
     ssp = rescaled_act.ShiftedSoftplus(beta=args.beta)
     kernel_conv = create_kernel_conv(
         cutoff=args.rad_maxr,
@@ -108,7 +119,8 @@ def create_model(args, atomrefs, means, stddevs, properties):
             l3=args.l3,
             L=args.L,
             scalar_act=sp,
-            gate_act=rescaled_act.sigmoid
+            gate_act=rescaled_act.sigmoid,
+            avg_n_atoms=avg_n_atoms
         )
     else:
         net = Network(
@@ -120,11 +132,17 @@ def create_model(args, atomrefs, means, stddevs, properties):
             l3=args.l3,
             L=args.L,
             scalar_act=sp,
-            gate_act=rescaled_act.sigmoid
+            gate_act=rescaled_act.sigmoid,
+            avg_n_atoms=avg_n_atoms
         )
 
     ident = torch.nn.Identity()
-    outnet = OutputScalarNetwork(kernel_conv=kernel_conv, previous_Rs=net.Rs[-1], scalar_act=ident)
+    outnet = OutputScalarNetwork(
+        kernel_conv=kernel_conv,
+        previous_Rs=net.Rs[-1],
+        scalar_act=ident,
+        avg_n_atoms=avg_n_atoms
+    )
 
     output_modules = [
         spk.atomistic.Atomwise(
@@ -172,9 +190,8 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
     logging.info(f"device: {device}")
     n_epochs = args.epochs if args.epochs else sys.maxsize
     logging.info(f"Max epochs {n_epochs}")
-    # trainer.train(device=device, n_epochs=n_epochs)
-    cProfile.runctx("trainer.train(device=device, n_epochs=n_epochs)", globals(), locals(), filename='profile.log',
-                    sort='tottime')
+    trainer.train(device=device, n_epochs=n_epochs)
+    # cProfile.runctx("trainer.train(device=device, n_epochs=n_epochs)", globals(), locals(), sort='tottime')
 
 
 class WallHook(spk.hooks.Hook):
@@ -266,8 +283,8 @@ def main():
         raise ValueError("No properties were selected to train on.")
 
     dataset, split_file, train_loader, val_loader, test_loader = get_data(args, properties)
-    atomrefs, means, stddevs = get_statistics(dataset, split_file, properties, train_loader)
-    model = create_model(args, atomrefs, means, stddevs, properties)
+    atomrefs, means, stddevs, avg_n_atoms = get_statistics(dataset, split_file, properties, train_loader)
+    model = create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms)
 
     # cProfile.run("train(args, model, properties, wall, device, train_loader, val_loader)")
     train(args, model, properties, wall, device, train_loader, val_loader)
