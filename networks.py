@@ -10,6 +10,10 @@ from e3nn.radial import CosineBasisModel, GaussianRadialModel
 from e3nn.non_linearities.gated_block import GatedBlock
 from e3nn.o3 import spherical_harmonics_xyz
 
+
+CUSTOM_BACKWARD = True
+
+
 def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
     if radial_model == "cosine":
         RadialModel = partial(
@@ -39,14 +43,15 @@ def constants(batch):
     one_hot, geometry, mask = batch[spk.Properties.Z], batch[spk.Properties.R], batch[spk.Properties.atom_mask]
     rb = geometry.unsqueeze(1)  # [batch, 1, b, xyz]
     ra = geometry.unsqueeze(2)  # [batch, a, 1, xyz]
-    diff_geo = rb - ra
-    radii = diff_geo.norm(2, dim=-1)
+    diff_geo = (rb - ra).detach()
+    radii = diff_geo.norm(2, dim=-1).detach()
     return one_hot, geometry, mask, diff_geo, radii
 
 
 class Network(torch.nn.Module):
-    def __init__(self, kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
+    def __init__(self, kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, avg_n_atoms):
         super().__init__()
+        self.avg_n_atoms = avg_n_atoms
 
         Rs = [[(embed, 0)]]
         Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1, l2, l3])]
@@ -65,7 +70,6 @@ class Network(torch.nn.Module):
 
     def forward(self, batch):
         features, _, mask, diff_geo, radii = constants(batch)
-        batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
@@ -74,31 +78,51 @@ class Network(torch.nn.Module):
             if kc.set_of_l_filters != set_of_l_filters:
                 set_of_l_filters = kc.set_of_l_filters
                 y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
-            features = kc(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), diff_geo, mask, y=y, radii=radii)
+            features = kc(
+                features.div(self.avg_n_atoms ** 0.5),
+                diff_geo,
+                mask,
+                y=y,
+                radii=radii,
+                custom_backward=CUSTOM_BACKWARD
+            )
             features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
 
 
 class ResNetwork(Network):
-    def __init__(self, kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act):
-        super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act)
+    def __init__(self, kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, avg_n_atoms):
+        super(ResNetwork, self).__init__(kernel_conv, embed, l0, l1, l2, l3, L, scalar_act, gate_act, avg_n_atoms)
 
     def forward(self, batch):
         features, _, mask, diff_geo, radii = constants(batch)
-        batchwise_num_atoms = mask.sum(dim=-1)
         embedding = self.layers[0]
         features = embedding(features)
         set_of_l_filters = self.layers[1][0].set_of_l_filters
         y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
         kc, act = self.layers[1]
-        features = kc(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), diff_geo, mask, y=y, radii=radii)
+        features = kc(
+            features.div(self.avg_n_atoms ** 0.5),
+            diff_geo,
+            mask,
+            y=y,
+            radii=radii,
+            custom_backward=CUSTOM_BACKWARD
+        )
         features = act(features)
         for kc, act in self.layers[2:]:
             if kc.set_of_l_filters != set_of_l_filters:
                 set_of_l_filters = kc.set_of_l_filters
                 y = spherical_harmonics_xyz(set_of_l_filters, diff_geo)
-            new_features = kc(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), diff_geo, mask, y=y, radii=radii)
+            new_features = kc(
+                features.div(self.avg_n_atoms ** 0.5),
+                diff_geo,
+                mask,
+                y=y,
+                radii=radii,
+                custom_backward=CUSTOM_BACKWARD
+            )
             new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)
             features = features + new_features
@@ -110,8 +134,10 @@ def gate_error(x):
 
 
 class OutputScalarNetwork(torch.nn.Module):
-    def __init__(self, kernel_conv, previous_Rs, scalar_act):
+    def __init__(self, kernel_conv, previous_Rs, scalar_act, avg_n_atoms):
         super(OutputScalarNetwork, self).__init__()
+        self.avg_n_atoms = avg_n_atoms
+
         Rs = [previous_Rs]
         Rs += [[(1, 0)]]
         self.Rs = Rs
@@ -126,9 +152,8 @@ class OutputScalarNetwork(torch.nn.Module):
     def forward(self, batch):
         _, _, mask, diff_geo, radii = constants(batch)
         features = batch["representation"]
-        batchwise_num_atoms = mask.sum(dim=-1)
         for kc, act in self.layers:
-            features = kc(features.div(batchwise_num_atoms.reshape(-1, 1, 1) ** 0.5), diff_geo, mask, radii=radii)
+            features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask, radii=radii)
             features = act(features)
             features = features * mask.unsqueeze(-1)
         return features
