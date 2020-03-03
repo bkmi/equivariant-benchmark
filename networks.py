@@ -11,6 +11,9 @@ from e3nn.non_linearities.gated_block import GatedBlock
 from e3nn.o3 import spherical_harmonics_xyz
 
 
+CUSTOM_BACKWARD = True
+
+
 def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
     if radial_model == "cosine":
         RadialModel = partial(
@@ -80,7 +83,8 @@ class Network(torch.nn.Module):
                 diff_geo,
                 mask,
                 y=y,
-                radii=radii
+                radii=radii,
+                custom_backward=CUSTOM_BACKWARD
             )
             features = act(features)
             features = features * mask.unsqueeze(-1)
@@ -103,7 +107,8 @@ class ResNetwork(Network):
             diff_geo,
             mask,
             y=y,
-            radii=radii
+            radii=radii,
+            custom_backward=CUSTOM_BACKWARD
         )
         features = act(features)
         for kc, act in self.layers[2:]:
@@ -115,7 +120,8 @@ class ResNetwork(Network):
                 diff_geo,
                 mask,
                 y=y,
-                radii=radii
+                radii=radii,
+                custom_backward=CUSTOM_BACKWARD
             )
             new_features = act(new_features)
             new_features = new_features * mask.unsqueeze(-1)

@@ -21,7 +21,9 @@ from evaluation import evaluate, record_versions
 
 def configuration(args):
     torch.set_default_dtype(torch.float32)
-    logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
+    log_level = os.environ.get("LOGLEVEL", "INFO")
+    print(f"Logging level {log_level}")
+    logging.basicConfig(level=log_level)
     if torch.cuda.is_available() and not args.cpu:
         device = torch.device("cuda")
     else:
@@ -190,6 +192,8 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
     n_epochs = args.epochs if args.epochs else sys.maxsize
     logging.info(f"Max epochs {n_epochs}")
     trainer.train(device=device, n_epochs=n_epochs)
+    # import cProfile
+    # cProfile.runctx("trainer.train(device=device, n_epochs=n_epochs)", globals(), locals(), sort="tottime")
 
 
 class WallHook(spk.hooks.Hook):
