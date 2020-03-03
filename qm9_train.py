@@ -68,11 +68,12 @@ def get_data(args, properties):
 
 def get_statistics(dataset, split_file, properties, train_loader):
     atomrefs = dataset.get_atomref(properties)
-    split_npz = np.load(split_file)
+    with np.load(split_file) as split_npz:
+        split_npz_dict = {k: v for k, v in split_npz.items()}
     try:
-        avg_n_atoms = torch.from_numpy(split_npz['avg_n_atoms'])
-        means = {prop: torch.from_numpy(split_npz[f'{prop}_mean']) for prop in properties}
-        stddevs = {prop: torch.from_numpy(split_npz[f'{prop}_stddev']) for prop in properties}
+        avg_n_atoms = torch.from_numpy(split_npz_dict['avg_n_atoms'])
+        means = {prop: torch.from_numpy(split_npz_dict[f'{prop}_mean']) for prop in properties}
+        stddevs = {prop: torch.from_numpy(split_npz_dict[f'{prop}_stddev']) for prop in properties}
         logging.info(f"statistics loaded from {split_file}")
     except KeyError:
         means, stddevs = train_loader.get_statistics(
@@ -92,7 +93,11 @@ def get_statistics(dataset, split_file, properties, train_loader):
             **{'avg_n_atoms': avg_n_atoms},
             **{f'{prop}_mean': means[prop] for prop in properties},
             **{f'{prop}_stddev': stddevs[prop] for prop in properties},
-            **split_npz
+            **{
+                k: v for k, v in split_npz_dict.items()
+                if k not in [f"{prop}_mean" for prop in properties]
+                and k not in [f"{prop}_stddev" for prop in properties]
+            }
         )
         logging.info(f"statistics saved to {split_file}")
     return atomrefs, means, stddevs, avg_n_atoms
