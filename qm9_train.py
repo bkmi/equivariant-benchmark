@@ -157,7 +157,12 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
 
 
 def train(args, model, properties, wall, device, train_loader, val_loader):
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    if args.optimizer == 'adam':
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    elif args.optimizer == 'sgd':
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    else:
+        raise ValueError("Optimizer must be either adam or sgd.")
 
     # hooks
     logging.info("build trainer")
