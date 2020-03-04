@@ -58,6 +58,7 @@ def train_parser():
     parser.add_argument("--bs", type=int, default=16, help="Batch size.")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate.")
 
+    parser.add_argument("--optimizer", type=str, default="adam", choices=["adam", "sgd"], help="Select optimizer.")
     parser.add_argument("--min_lr", type=float, default=1e-6, help="Learning rate.")
     parser.add_argument("--reduce_lr_patience", type=int, default=25, help="Number of epochs to reduce lr.")
     parser.add_argument("--early_stop_patience", type=int, default=51, help="Number of epochs before training stops.")
@@ -92,6 +93,11 @@ def fix_old_args_with_defaults(args):
         args.res
     except AttributeError:
         args.res = False
+
+    try:
+        args.optimizer
+    except AttributeError:
+        args.optimizer = "adam"
 
     return args
 
