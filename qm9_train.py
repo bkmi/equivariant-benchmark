@@ -167,7 +167,7 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     elif args.optimizer == 'sgd':
-        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, nesterov=True)
     else:
         raise ValueError("Optimizer must be either adam or sgd.")
 
