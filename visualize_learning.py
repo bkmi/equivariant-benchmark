@@ -2,6 +2,9 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
+# import matplotlib as mpl
+# mpl.use("pgf")
+# plt.rcParams.update({"pgf.rcfonts": False})
 
 
 TARGETS = sorted("A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv".split())
@@ -116,8 +119,28 @@ def u0():
         fig.show()
 
 
+def mu():
+    df_gau_l1_bs30 = pd.read_csv("mu_l1_gauss_bs30/log.csv")
+    df_gau_bs30 = pd.read_csv("mu_gauss_bs30/log.csv")
+    df_gau_bs16 = pd.read_csv("mu_gauss_bs16/log.csv")
+    df_gau_l1_bs16 = pd.read_csv("mu_l1_gauss_bs16/log.csv")
+    columns = ["Train loss", "Validation loss", "MAE_dipole_moment"]
+    for column in columns:
+        fig, axis = plt.subplots(figsize=(10/3, 8/3), dpi=200)
+        axis.semilogy(df_gau_l1_bs30[column], label="L0 & L1, bs 30")
+        axis.semilogy(df_gau_bs30[column], label="L0, bs 30")
+        axis.semilogy(df_gau_bs16[column], label="L0, bs 16")
+        axis.semilogy(df_gau_l1_bs16[column], label="L0 & L1, bs 16")
+        fig.legend()
+        fig.tight_layout()
+        fig.savefig("mu_" + column.lower().replace(' ', '_') + '.pdf')
+        fig.show()
+
+
+def main():
+    mu()
 
 
 if __name__ == '__main__':
     # all_targets()
-    u0()
+    main()

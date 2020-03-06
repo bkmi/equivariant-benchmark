@@ -194,6 +194,8 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
         optimizer=optimizer,
         train_loader=train_loader,
         validation_loader=val_loader,
+        keep_n_checkpoints=5,
+        checkpoint_interval=5
     )  # This has the side effect of loading the last checkpoint's state_dict
 
     # run training
