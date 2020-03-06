@@ -37,6 +37,7 @@ def evaluate_dataset(metrics, model, loader, device):
     for metric in metrics:
         metric.reset()
 
+    model.requires_grad_(False)
     model = model.to(device)
     for batch in loader:
         batch = {k: v.to(device) for k, v in batch.items()}
