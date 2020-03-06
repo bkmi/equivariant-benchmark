@@ -240,8 +240,7 @@ case "$1" in
         --l0 128 \
         --embed 128 \
         --rad_h 128 \
-        --res \
-        --reduce_lr_patience 6
+        --res
     done
     ;;
 
@@ -265,8 +264,7 @@ case "$1" in
         --l1 21 \
         --embed 128 \
         --rad_h 128 \
-        --res \
-        --reduce_lr_patience 6
+        --res
     done
     ;;
 
@@ -291,8 +289,7 @@ case "$1" in
         --l2 8 \
         --embed 128 \
         --rad_h 128 \
-        --res \
-        --reduce_lr_patience 6
+        --res
     done
     ;;
 
@@ -316,7 +313,6 @@ case "$1" in
         --embed 128 \
         --rad_h 128 \
         --res \
-        --reduce_lr_patience 6 \
         --radial_model gaussian
     done
     ;;
@@ -342,7 +338,6 @@ case "$1" in
         --embed 128 \
         --rad_h 128 \
         --res \
-        --reduce_lr_patience 6 \
         --radial_model gaussian
     done
     ;;

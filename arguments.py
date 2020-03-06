@@ -1,17 +1,6 @@
 from argparse import ArgumentParser
 
 
-# def directory_format(string: str):
-#     string = str(string)
-#     if string[-1] is "/":
-#         pass
-#     elif string[-1] is "\\":
-#         raise TypeError("Can't use pc format.")
-#     else:
-#         string += "/"
-#     return string
-
-
 def qm9_property_selector():
     parser = ArgumentParser(add_help=False)
     group = parser.add_argument_group(
@@ -41,8 +30,8 @@ def train_parser():
     parser.add_argument("--model_dir", type=str, required=True, help="Directory to save model.")
     parser.add_argument("--overwrite", action='store_true', help="When set, overwrite content of model_dir.")
 
-    parser.add_argument("--evaluate", type=str, default="", help="Set the name for the evaluation csv. If blank, "
-                                                                 "do not evaluate.")
+    parser.add_argument("--evaluate", type=str, default="eval", help="Set the name for the evaluation csv. If blank, "
+                                                                     "do not evaluate.")
 
     parser.add_argument("--db", type=str, required=True, help="Path to database.")
     parser.add_argument("--split_file", type=str, default="", help="A split.npz file. Loads if exists, writes if not.")
@@ -60,8 +49,8 @@ def train_parser():
 
     parser.add_argument("--optimizer", type=str, default="adam", choices=["adam", "sgd"], help="Select optimizer.")
     parser.add_argument("--min_lr", type=float, default=1e-6, help="Learning rate.")
-    parser.add_argument("--reduce_lr_patience", type=int, default=25, help="Number of epochs to reduce lr.")
-    parser.add_argument("--early_stop_patience", type=int, default=51, help="Number of epochs before training stops.")
+    parser.add_argument("--reduce_lr_patience", type=int, default=5, help="Number of epochs to reduce lr.")
+    parser.add_argument("--early_stop_patience", type=int, default=50, help="Number of epochs before training stops.")
 
     parser.add_argument("--embed", type=int, default=64)
     parser.add_argument("--l0", type=int, default=64)

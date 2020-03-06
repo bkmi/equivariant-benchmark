@@ -101,44 +101,62 @@ def all_targets():
         fig.show()
 
 
-def u0():
-    df_u0 = pd.read_csv("big_swift/20200123_U0_64/log.csv")
-    df_u0_l1 = pd.read_csv("big_l1_tesseract/20200122_U0_64_l1/log.csv")
-    df_u0_res = pd.read_csv("u0_res_swift/log.csv")
-    df_u0_res_l1 = pd.read_csv("u0_res_l1_swift/log.csv")
+def u0(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
+    prefix = "u0"
+    log = "log.csv"
+    dfd = {
+        "cos_bs12": "20200220_U0",
+        "cos_l1_bs12": "20200220_U0_l1",
+        "cos_l1l2_bs12": "20200220_U0_l1l2",
+        "gau_bs20": "20200301_U0_gauss",
+        "gau_l1_bs20": "20200301_U0_gauss_l1",
+        "cos_l1_bs16": "u0_res_l1_swift",
+        "cos_bs16": "u0_res_swift",
+    }
+
+    dfd = {k: pd.read_csv(os.path.join(prefix, v, log)) for k, v in dfd.items()}
     columns = ["Train loss", "Validation loss", "MAE_energy_U0"]
     for column in columns:
-        fig, axis = plt.subplots(figsize=(10/3, 8/3), dpi=200)
-        axis.semilogy(df_u0[column], label="L0")
-        axis.semilogy(df_u0_l1[column], label="L0 & L1 ")
-        axis.semilogy(df_u0_res[column], label="L0 residual")
-        axis.semilogy(df_u0_res_l1[column], label="L0 & L1 residual")
+        fig, axis = plt.subplots(figsize=figsize, dpi=dpi)
+        for k, v in dfd.items():
+            axis.semilogy(v[column], label=k)
         fig.legend()
         fig.tight_layout()
-        fig.savefig("u0_" + column.lower().replace(' ', '_') + '.png')
+        fig.savefig("u0_" + column.lower().replace(' ', '_') + format)
         fig.show()
 
 
-def mu():
-    df_gau_l1_bs30 = pd.read_csv("mu_l1_gauss_bs30/log.csv")
-    df_gau_bs30 = pd.read_csv("mu_gauss_bs30/log.csv")
-    df_gau_bs16 = pd.read_csv("mu_gauss_bs16/log.csv")
-    df_gau_l1_bs16 = pd.read_csv("mu_l1_gauss_bs16/log.csv")
+def mu(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
+    prefix = "mu"
+    log = "log.csv"
+    dfd = {
+        "cos_bs12": "20200220_mu",
+        "cos_l1_bs12": "20200220_mu_l1",
+        "cos_l1l2_bs12": "20200220_mu_l1l2",
+        "gau_bs20": "20200301_mu_gauss",
+        "gau_l1_bs20": "20200301_mu_gauss_l1",
+        "gau_bs16": "mu_gauss_bs16",
+        "gau_bs30": "mu_gauss_bs30",
+        "gau_l1_bs16": "mu_l1_gauss_bs16",
+        "gau_l1_bs16_shallow": 'mu_l1_gauss_bs16_shallow',
+        "gau_l1_bs30": "mu_l1_gauss_bs30",
+    }
+
+    dfd = {k: pd.read_csv(os.path.join(prefix, v, log)) for k, v in dfd.items()}
     columns = ["Train loss", "Validation loss", "MAE_dipole_moment"]
     for column in columns:
-        fig, axis = plt.subplots(figsize=(10/3, 8/3), dpi=200)
-        axis.semilogy(df_gau_l1_bs30[column], label="L0 & L1, bs 30")
-        axis.semilogy(df_gau_bs30[column], label="L0, bs 30")
-        axis.semilogy(df_gau_bs16[column], label="L0, bs 16")
-        axis.semilogy(df_gau_l1_bs16[column], label="L0 & L1, bs 16")
+        fig, axis = plt.subplots(figsize=figsize, dpi=dpi)
+        for k, v in dfd.items():
+            axis.semilogy(v[column], label=k)
         fig.legend()
         fig.tight_layout()
-        fig.savefig("mu_" + column.lower().replace(' ', '_') + '.pdf')
+        fig.savefig("mu_" + column.lower().replace(' ', '_') + format)
         fig.show()
 
 
 def main():
-    mu()
+    mu(format='.png')
+    u0(format='.png')
 
 
 if __name__ == '__main__':
