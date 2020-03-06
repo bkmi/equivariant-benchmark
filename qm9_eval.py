@@ -18,12 +18,14 @@ def load_directory_and_args():
     parser.add_argument('model_dir', help="Path to the model directory to evaluate.")
     parser.add_argument('--file', type=str, default="eval", help="Name of evaluation file.")
     parser.add_argument('--cpu', action='store_true', help="When true, force cpu usage.")
+    parser.add_argument('--bs', type=int, default=0, help="Evaluate at a different batch size.")
     parser.add_argument('--load_recent', action='store_true', help="Load most recent checkpoint, otherwise best.")
     args = parser.parse_args()
     loaded_args = torch.load(os.path.join(args.model_dir, "args.pkl"))
     loaded_args.cpu = args.cpu
     loaded_args.evaluate = args.file
     loaded_args.load_recent = args.load_recent
+    loaded_args.bs = args.bs if args.bs != 0 else loaded_args.bs
     return fix_old_args_with_defaults(loaded_args)
 
 
