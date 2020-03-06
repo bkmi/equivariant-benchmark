@@ -27,6 +27,7 @@ def load_directory_and_args():
     loaded_args.evaluate = args.file
     loaded_args.load_recent = args.load_recent
     loaded_args.bs = args.bs if args.bs != 0 else loaded_args.bs
+    loaded_args.overwrite = False
     return fix_old_args_with_defaults(loaded_args)
 
 
