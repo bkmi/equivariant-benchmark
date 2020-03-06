@@ -74,8 +74,8 @@ def train_parser():
 
     parser.add_argument("--radial_model", type=str, choices=("cosine", "gaussian"), default="cosine",
                         help="Radial model.")
-    parser.add_argument("--rad_nb", type=int, default=25, help="Radial number of bases.")
-    parser.add_argument("--rad_maxr", type=float, default=5.0, help="Max radius.")
+    parser.add_argument("--rad_nb", type=int, default=50, help="Radial number of bases.")
+    parser.add_argument("--rad_maxr", type=float, default=10.0, help="Max radius.")
     parser.add_argument("--rad_h", type=int, default=64, help="Size of radial weight parameters.")
     parser.add_argument("--rad_L", type=int, default=2, help="Number of radial layers.")
 
