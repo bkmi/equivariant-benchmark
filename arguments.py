@@ -47,14 +47,14 @@ def train_parser():
     parser.add_argument("--db", type=str, required=True, help="Path to database.")
     parser.add_argument("--split_file", type=str, default="", help="A split.npz file. Loads if exists, writes if not.")
 
-    parser.add_argument("--wall", type=float, required=True, help="If calculation time is too long, break.")
+    parser.add_argument("--wall", type=float, default=86400, help="If calculation time is too long, break. One day.")
     parser.add_argument("--cpu", action='store_true', help="Only allow cpu.")
     parser.add_argument("--num_workers", type=int, default=2, help="Workers for data loader.")
 
     parser.add_argument("--ntr", type=int, default=1000, help="Number of training examples.")
     parser.add_argument("--nva", type=int, default=100, help="Number of validation examples.")
 
-    parser.add_argument("--epochs", type=int, help="Number of epochs.")
+    parser.add_argument("--epochs", type=int, default=55, help="Number of epochs. 55 is about a day.")
     parser.add_argument("--bs", type=int, default=16, help="Batch size.")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate.")
 
