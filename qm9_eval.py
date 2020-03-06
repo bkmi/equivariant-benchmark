@@ -22,6 +22,7 @@ def load_directory_and_args():
     parser.add_argument('--load_recent', action='store_true', help="Load most recent checkpoint, otherwise best.")
     args = parser.parse_args()
     loaded_args = torch.load(os.path.join(args.model_dir, "args.pkl"))
+    loaded_args.model_dir = args.model_dir
     loaded_args.cpu = args.cpu
     loaded_args.evaluate = args.file
     loaded_args.load_recent = args.load_recent
