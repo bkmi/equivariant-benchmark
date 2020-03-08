@@ -7,7 +7,7 @@ split_file="pst.npz"
 case "$1" in
   small)
     # Small
-    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
 
     for target in $targets
     do
@@ -17,7 +17,7 @@ case "$1" in
     ;;
 
   big)
-    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
 
     for target in $targets
     do
@@ -27,15 +27,12 @@ case "$1" in
         --split_file "$split_file" \
         --db "$db" \
         --wall 43200 \
-        --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20
+        --"$target"
     done
     ;;
 
   big_narrow)
-    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
 
     for target in $targets
     do
@@ -46,15 +43,12 @@ case "$1" in
         --db "$db" \
         --wall 43200 \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 32
     done
     ;;
 
   big3)
-    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
 
     for target in $targets
     do
@@ -65,15 +59,12 @@ case "$1" in
         --db "$db" \
         --wall 43200 \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --L 3
     done
     ;;
 
   big_l1)
-    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
 
     for target in $targets
     do
@@ -84,16 +75,13 @@ case "$1" in
         --db "$db" \
         --wall 43200 \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 32 \
         --l1 10
     done
     ;;
 
   big_narrow_l1)
-    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
 
     for target in $targets
     do
@@ -104,16 +92,13 @@ case "$1" in
         --db "$db" \
         --wall 43200 \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 16 \
         --l1 5
     done
     ;;
 
   big3_l1)
-    targets="A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
     
     for target in $targets
     do
@@ -124,9 +109,6 @@ case "$1" in
         --db "$db" \
         --wall 43200 \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 32 \
         --l1 10 \
         --L 3
@@ -141,12 +123,11 @@ case "$1" in
     python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
         --ntr 109000 \
         --nva 1000 \
-        --bs 20
+        --bs 16
     ;;
 
   u0_64_res)
@@ -157,12 +138,8 @@ case "$1" in
     python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --res
     ;;
 
@@ -174,12 +151,8 @@ case "$1" in
     python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 32 \
         --l1 10
     ;;
@@ -192,12 +165,8 @@ case "$1" in
     python qm9_train.py \
       --model_dir "$model_dir" \
       --split_file "$split_file" \
-      --db "$db" \
-      --wall 86400 \
+      --db "$db"  \
       --"$target" \
-      --ntr 109000 \
-      --nva 1000 \
-      --bs 20 \
       --l0 32 \
       --l1 10
     ;;
@@ -210,12 +179,8 @@ case "$1" in
     python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 128 \
         --embed 128 \
         --rad_h 128
@@ -231,12 +196,8 @@ case "$1" in
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 128 \
         --embed 128 \
         --rad_h 128 \
@@ -254,12 +215,8 @@ case "$1" in
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 64 \
         --l1 21 \
         --embed 128 \
@@ -278,12 +235,8 @@ case "$1" in
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 42 \
         --l1 14 \
         --l2 8 \
@@ -303,12 +256,8 @@ case "$1" in
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 128 \
         --embed 128 \
         --rad_h 128 \
@@ -327,12 +276,8 @@ case "$1" in
       python qm9_train.py \
         --model_dir "$model_dir" \
         --split_file "$split_file" \
-        --db "$db" \
-        --wall 86400 \
+        --db "$db"  \
         --"$target" \
-        --ntr 109000 \
-        --nva 1000 \
-        --bs 20 \
         --l0 64 \
         --l1 21 \
         --embed 128 \
@@ -342,14 +287,54 @@ case "$1" in
     done
     ;;
 
+  # Added 09.03.2020
+  all_l1)
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+
+    for target in $targets
+    do
+      model_dir=${prefix}${today}_${target}
+      python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db"  \
+        --"$target" \
+        --l0 64 \
+        --l1 21 \
+        --embed 128 \
+        --rad_h 128 \
+        --res \
+        --wall 87120
+    done
+    ;;
+
+  # Added 09.03.2020
+  all)
+    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+
+    for target in $targets
+    do
+      model_dir=${prefix}${today}_${target}
+      python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db"  \
+        --"$target" \
+        --l0 128 \
+        --embed 128 \
+        --rad_h 128 \
+        --res \
+        --wall 87120
+    done
+    ;;
+
   # Added 22.02.2020
   continue)
     for i in "${@:2}" # iterate through second argument and beyond
     do
       model_dir="$i"
       python qm9_train.py \
-        --model_dir "$model_dir" \
-        --wall 86400 \
+        --model_dir "$model_dir"  \
         --split_file this_is_not_used \
         --db this_is_not_used
     done

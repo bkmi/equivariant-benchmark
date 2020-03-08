@@ -40,8 +40,8 @@ def train_parser():
     parser.add_argument("--cpu", action='store_true', help="Only allow cpu.")
     parser.add_argument("--num_workers", type=int, default=2, help="Workers for data loader.")
 
-    parser.add_argument("--ntr", type=int, default=1000, help="Number of training examples.")
-    parser.add_argument("--nva", type=int, default=100, help="Number of validation examples.")
+    parser.add_argument("--ntr", type=int, default=109000, help="Number of training examples.")
+    parser.add_argument("--nva", type=int, default=1000, help="Number of validation examples.")
 
     parser.add_argument("--epochs", type=int, default=55, help="Number of epochs. 55 is about a day.")
     parser.add_argument("--bs", type=int, default=16, help="Batch size.")
