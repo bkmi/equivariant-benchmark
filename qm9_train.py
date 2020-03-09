@@ -70,16 +70,10 @@ def get_statistics(dataset, split_file, properties, train_loader):
     atomrefs = dataset.get_atomref(properties)
     with np.load(split_file) as split_npz:
         split_npz_dict = {k: v for k, v in split_npz.items()}
+
     try:
         avg_n_atoms = torch.from_numpy(split_npz_dict['avg_n_atoms'])
-        means = {prop: torch.from_numpy(split_npz_dict[f'{prop}_mean']) for prop in properties}
-        stddevs = {prop: torch.from_numpy(split_npz_dict[f'{prop}_stddev']) for prop in properties}
-        logging.info(f"statistics loaded from {split_file}")
     except KeyError:
-        means, stddevs = train_loader.get_statistics(
-            properties, divide_by_atoms=True, single_atom_ref=atomrefs
-        )  # TODO, the means are used for the validation data as well which seems wrong to me.
-
         n_atoms = 0
         molecules = 0
         for batch in train_loader:
@@ -87,6 +81,15 @@ def get_statistics(dataset, split_file, properties, train_loader):
             molecules += mask.size(0)
             n_atoms += mask.sum().item()
         avg_n_atoms = n_atoms / molecules
+
+    try:
+        means = {prop: torch.from_numpy(split_npz_dict[f'{prop}_mean']) for prop in properties}
+        stddevs = {prop: torch.from_numpy(split_npz_dict[f'{prop}_stddev']) for prop in properties}
+        logging.info(f"statistics loaded from {split_file}")
+    except KeyError:
+        means, stddevs = train_loader.get_statistics(
+            properties, divide_by_atoms=True, single_atom_ref=atomrefs
+        )
 
         np.savez(
             split_file,
@@ -97,6 +100,7 @@ def get_statistics(dataset, split_file, properties, train_loader):
                 k: v for k, v in split_npz_dict.items()
                 if k not in [f"{prop}_mean" for prop in properties]
                 and k not in [f"{prop}_stddev" for prop in properties]
+                and k != 'avg_n_atoms'
             }
         )
         logging.info(f"statistics saved to {split_file}")

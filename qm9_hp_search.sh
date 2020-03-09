@@ -288,8 +288,8 @@ case "$1" in
     ;;
 
   # Added 09.03.2020
-  all_l1)
-    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+  all_l1_no_mu)
+    targets="alpha homo lumo gap r2 zpve U0 U H G Cv"
 
     for target in $targets
     do
@@ -309,8 +309,8 @@ case "$1" in
     ;;
 
   # Added 09.03.2020
-  all)
-    targets="mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+  all_no_mu_u0)
+    targets="alpha homo lumo gap r2 zpve U H G Cv"
 
     for target in $targets
     do
