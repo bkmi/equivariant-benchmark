@@ -15,7 +15,7 @@ from schnetpack.datasets import QM9
 from e3nn.non_linearities import rescaled_act
 
 from arguments import train_parser, qm9_property_selector
-from networks import create_kernel_conv, Network, OutputScalarNetwork, ResNetwork
+from networks import create_kernel_conv, Network, OutputScalarNetwork, ResNetwork, OutputMLPNetwork
 from evaluation import evaluate, record_versions
 
 
@@ -147,12 +147,22 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
         )
 
     ident = torch.nn.Identity()
-    outnet = OutputScalarNetwork(
-        kernel_conv=kernel_conv,
-        previous_Rs=net.Rs[-1],
-        scalar_act=ident,
-        avg_n_atoms=avg_n_atoms
-    )
+
+    if args.mlp_out:
+        outnet = OutputMLPNetwork(
+            kernel_conv=kernel_conv,
+            previous_Rs=net.Rs[-1],
+            l0=args.l0,
+            scalar_act=sp,
+            avg_n_atoms=avg_n_atoms
+        )
+    else:
+        outnet = OutputScalarNetwork(
+            kernel_conv=kernel_conv,
+            previous_Rs=net.Rs[-1],
+            scalar_act=ident,
+            avg_n_atoms=avg_n_atoms
+        )
 
     output_modules = [
         spk.atomistic.Atomwise(
@@ -160,7 +170,8 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
             mean=means[prop],
             stddev=stddevs[prop],
             atomref=atomrefs[prop],
-            outnet=outnet
+            outnet=outnet,
+            aggregation_mode='sum' if args.mlp_out is False else None
         ) for prop in properties
     ]
     model = spk.AtomisticModel(net, output_modules)
@@ -320,6 +331,7 @@ def main():
             metrics,
             file=evaluation_file
         )
+
 
 if __name__ == '__main__':
     main()

@@ -59,6 +59,7 @@ def train_parser():
     parser.add_argument("--l3", type=int, default=0)
     parser.add_argument("--L", type=int, default=4, help="How many layers to create.")
 
+    parser.add_argument("--mlp_out", action="store_true", help="Add a mlp layer to the output instead of direct sum.")
     parser.add_argument("--res", action='store_true', help="Select a res-net architecture.")
 
     parser.add_argument("--radial_model", type=str, choices=("cosine", "gaussian"), default="cosine",
@@ -87,6 +88,11 @@ def fix_old_args_with_defaults(args):
         args.optimizer
     except AttributeError:
         args.optimizer = "adam"
+
+    try:
+        args.mlp_out
+    except AttributeError:
+        args.mlp_out = False
 
     return args
 

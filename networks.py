@@ -159,5 +159,52 @@ class OutputScalarNetwork(torch.nn.Module):
         return features
 
 
+class NormVarianceLinear(torch.nn.Module):
+    def __init__(self, in_features, out_features):
+        super(NormVarianceLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.weight = torch.nn.Parameter(torch.randn(out_features, in_features))
+        self.bias = torch.nn.Parameter(torch.rand(out_features) - 0.5)
+
+    def forward(self, x):
+        size = x.size(-1)
+        return x @ (self.weight.t() / size ** 0.5) + self.bias
+
+
+class OutputMLPNetwork(torch.nn.Module):
+    def __init__(self, kernel_conv, previous_Rs, l0, scalar_act, avg_n_atoms):
+        super(OutputMLPNetwork, self).__init__()
+        self.avg_n_atoms = avg_n_atoms
+
+        Rs = [previous_Rs]
+        Rs += [[(l0, 0)]]
+        self.Rs = Rs
+
+        def make_layer(Rs_in, Rs_out):
+            act = GatedBlock(Rs_out, scalar_act, gate_error)
+            kc = kernel_conv(Rs_in, act.Rs_in)
+            return torch.nn.ModuleList([kc, act])
+
+        self.layers = torch.nn.ModuleList([make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
+        self.mlp = torch.nn.ModuleList([
+            NormVarianceLinear(l0, l0),
+            torch.nn.ReLU(),
+            NormVarianceLinear(l0, 1),
+            torch.nn.ReLU()
+        ])
+
+    def forward(self, batch):
+        _, _, mask, diff_geo, radii = constants(batch)
+        features = batch["representation"]
+        for kc, act in self.layers:
+            features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask, radii=radii)
+            features = act(features)
+            features = features * mask.unsqueeze(-1)
+        features = features.sum(dim=1)
+        new_features = self.mlp(features)
+        return features + new_features
+
+
 if __name__ == '__main__':
     pass
