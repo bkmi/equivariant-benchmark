@@ -205,7 +205,7 @@ class OutputMLPNetwork(torch.nn.Module):
         new_features = features
         for layer in self.mlp:
             new_features = layer(new_features)
-        return features + new_features
+        return (features + new_features).unsqueeze(1)
 
 
 if __name__ == '__main__':

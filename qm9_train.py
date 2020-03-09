@@ -171,7 +171,7 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
             stddev=stddevs[prop],
             atomref=atomrefs[prop],
             outnet=outnet,
-            aggregation_mode='sum' if args.mlp_out is False else None
+            # aggregation_mode='sum' if args.mlp_out is False else None
         ) for prop in properties
     ]
     model = spk.AtomisticModel(net, output_modules)
