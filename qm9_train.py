@@ -14,7 +14,7 @@ from schnetpack.datasets import QM9
 
 from e3nn.non_linearities import rescaled_act
 
-from arguments import train_parser, qm9_property_selector
+from arguments import train_parser, qm9_property_selector, fix_old_args_with_defaults
 from networks import create_kernel_conv, Network, OutputScalarNetwork, ResNetwork, OutputMLPNetwork
 from evaluation import evaluate, record_versions
 
@@ -304,6 +304,7 @@ def main():
     # Setup script
     parser = argparse.ArgumentParser(parents=[train_parser(), qm9_property_selector()])
     args = parser.parse_args()
+    args = fix_old_args_with_defaults(args)
     wall = args.wall
     device = configuration(args)
     args = create_or_load_directory(args)
