@@ -169,7 +169,7 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
             property=prop,
             mean=means[prop],
             stddev=stddevs[prop],
-            atomref=atomrefs[prop],
+            atomref=atomrefs[prop] if not args.mlp_out else None,
             outnet=outnet,
             # aggregation_mode='sum' if args.mlp_out is False else None
         ) for prop in properties
