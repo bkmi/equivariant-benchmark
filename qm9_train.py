@@ -304,10 +304,10 @@ def main():
     # Setup script
     parser = argparse.ArgumentParser(parents=[train_parser(), qm9_property_selector()])
     args = parser.parse_args()
-    args = fix_old_args_with_defaults(args)
     wall = args.wall
     device = configuration(args)
     args = create_or_load_directory(args)
+    args = fix_old_args_with_defaults(args)
     properties = [vars(QM9)[k] for k, v in vars(args).items() if k in QM9.properties and v]
     if not properties:
         raise ValueError("No properties were selected to train on.")
