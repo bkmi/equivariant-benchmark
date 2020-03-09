@@ -202,7 +202,9 @@ class OutputMLPNetwork(torch.nn.Module):
             features = act(features)
             features = features * mask.unsqueeze(-1)
         features = features.sum(dim=1)
-        new_features = self.mlp(features)
+        new_features = features
+        for layer in self.mlp:
+            new_features = layer(new_features)
         return features + new_features
 
 
