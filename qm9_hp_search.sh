@@ -328,6 +328,31 @@ case "$1" in
     done
     ;;
 
+  gleichzeitig_mlp)
+    model_dir=${2:-${today}_gleichzeitig_mlp}
+    python qm9_train.py \
+        --model_dir "$model_dir" \
+        --split_file "$split_file" \
+        --db "$db"  \
+        --l0 128 \
+        --embed 128 \
+        --rad_h 128 \
+        --res \
+        --wall 87120 \
+        --mu \
+        --alpha \
+        --homo \
+        --lumo \
+        --gap \
+        --r2 \
+        --zpve \
+        --U0 \
+        --U \
+        --H \
+        --G \
+        --Cv
+    ;;
+
   # Added 22.02.2020
   continue)
     for i in "${@:2}" # iterate through second argument and beyond

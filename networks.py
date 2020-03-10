@@ -165,7 +165,7 @@ class NormVarianceLinear(torch.nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.weight = torch.nn.Parameter(torch.randn(out_features, in_features))
-        self.bias = torch.nn.Parameter(torch.rand(out_features) - 0.5)
+        self.bias = torch.nn.Parameter(torch.zeros(out_features))
 
     def forward(self, x):
         size = x.size(-1)

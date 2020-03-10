@@ -13,6 +13,7 @@ import schnetpack as spk
 from schnetpack.datasets import QM9
 
 from e3nn.non_linearities import rescaled_act
+from e3nn.rs import dim
 
 from arguments import train_parser, qm9_property_selector, fix_old_args_with_defaults
 from networks import create_kernel_conv, Network, OutputScalarNetwork, ResNetwork, OutputMLPNetwork
@@ -149,13 +150,21 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
     ident = torch.nn.Identity()
 
     if args.mlp_out:
-        outnet = OutputMLPNetwork(
-            kernel_conv=kernel_conv,
-            previous_Rs=net.Rs[-1],
-            l0=args.l0,
-            scalar_act=sp,
-            avg_n_atoms=avg_n_atoms
-        )
+        output_modules = [
+            spk.atomistic.Atomwise(
+                property=prop,
+                mean=means[prop],
+                stddev=stddevs[prop],
+                atomref=atomrefs[prop] if not args.mlp_out else None,
+                n_in=dim(net.Rs[-1]),
+                n_out=1,
+                n_neurons=128,
+                n_layers=2,
+                activation=sp
+                # aggregation_mode='sum' if args.mlp_out is False else None
+            ) for prop in properties
+        ]
+
     else:
         outnet = OutputScalarNetwork(
             kernel_conv=kernel_conv,
@@ -164,16 +173,16 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
             avg_n_atoms=avg_n_atoms
         )
 
-    output_modules = [
-        spk.atomistic.Atomwise(
-            property=prop,
-            mean=means[prop],
-            stddev=stddevs[prop],
-            atomref=atomrefs[prop] if not args.mlp_out else None,
-            outnet=outnet,
-            # aggregation_mode='sum' if args.mlp_out is False else None
-        ) for prop in properties
-    ]
+        output_modules = [
+            spk.atomistic.Atomwise(
+                property=prop,
+                mean=means[prop],
+                stddev=stddevs[prop],
+                atomref=atomrefs[prop] if not args.mlp_out else None,
+                outnet=outnet,
+                # aggregation_mode='sum'
+            ) for prop in properties
+        ]
     model = spk.AtomisticModel(net, output_modules)
     return model
 
