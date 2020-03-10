@@ -58,12 +58,15 @@ def train_parser():
     parser.add_argument("--l2", type=int, default=0)
     parser.add_argument("--l3", type=int, default=0)
     parser.add_argument("--L", type=int, default=4, help="How many layers to create.")
+    parser.add_argument("--res", action='store_true', help="Select a res-net architecture between gated blocks.")
 
     parser.add_argument("--mlp_out", action="store_true", help="Add a mlp layer to the output instead of convolution.")
-    parser.add_argument("--res", action='store_true', help="Select a res-net architecture.")
+    parser.add_argument("--mlp_neurons", type=int, default=128, help="Number of neurons in atom-wise MLP.")
+    parser.add_argument("--mlp_layers", type=int, default=2, help="Number of layers in atom-wise MLP.")
 
-    parser.add_argument("--radial_model", type=str, choices=("cosine", "gaussian"), default="cosine",
-                        help="Radial model.")
+    parser.add_argument(
+        "--radial_model", type=str, choices=("cosine", "gaussian"), default="cosine", help="Radial model."
+    )
     parser.add_argument("--rad_nb", type=int, default=50, help="Radial number of bases.")
     parser.add_argument("--rad_maxr", type=float, default=10.0, help="Max radius.")
     parser.add_argument("--rad_h", type=int, default=64, help="Size of radial weight parameters.")
@@ -93,6 +96,16 @@ def fix_old_args_with_defaults(args):
         args.mlp_out
     except AttributeError:
         args.mlp_out = False
+
+    try:
+        args.mlp_neurons
+    except AttributeError:
+        args.mlp_neurons = 128
+
+    try:
+        args.mlp_layers
+    except AttributeError:
+        args.mlp_layers = 2
 
     return args
 

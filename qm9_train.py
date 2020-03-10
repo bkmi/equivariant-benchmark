@@ -158,8 +158,8 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
                 atomref=atomrefs[prop] if not args.mlp_out else None,
                 n_in=dim(net.Rs[-1]),
                 n_out=1,
-                n_neurons=128,
-                n_layers=2,
+                n_neurons=args.mlp_neurons,
+                n_layers=args.mlp_layers,
                 activation=sp
                 # aggregation_mode='sum' if args.mlp_out is False else None
             ) for prop in properties
