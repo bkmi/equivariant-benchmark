@@ -355,6 +355,8 @@ def main():
     dataset, split_file, train_loader, val_loader, test_loader = get_data(args, properties)
     atomrefs, means, stddevs, avg_n_atoms = get_statistics(dataset, split_file, properties, train_loader)
     model = create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms)
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
 
     train(args, model, properties, means, stddevs, wall, device, train_loader, val_loader)
     record_versions(os.path.join(args.model_dir, f"versions_{os.uname()[1]}_{date.today()}.txt"))
