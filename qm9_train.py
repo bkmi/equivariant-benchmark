@@ -187,7 +187,7 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
     return model
 
 
-def train(args, model, properties, wall, device, train_loader, val_loader):
+def train(args, model, properties, means, stddevs, wall, device, train_loader, val_loader):
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     elif args.optimizer == 'sgd':
@@ -209,7 +209,10 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
         hooks += [MemoryProfileHook(device)]
 
     # trainer
-    loss = spk.train.build_mse_loss(properties)
+    if args.mlp_out:
+        loss = build_standardized_mse_loss(properties, means, stddevs)
+    else:
+        loss = spk.train.build_mse_loss(properties)
     trainer = spk.train.Trainer(
         args.model_dir,
         model=model,
@@ -230,6 +233,34 @@ def train(args, model, properties, wall, device, train_loader, val_loader):
     trainer.train(device=device, n_epochs=n_epochs)
     # import cProfile
     # cProfile.runctx("trainer.train(device=device, n_epochs=n_epochs)", globals(), locals(), sort="tottime")
+
+
+def build_standardized_mse_loss(properties, means, stddevs, factors=None):
+    """The mean squared error loss function with normalized variance and unit expectation at initialization.
+    Args:
+        properties (list): mapping between the model properties and the
+            dataset properties
+        factors (list or None): multiply loss value of property with tradeoff
+            factor
+
+    Returns:
+        mean squared error loss function
+    """
+    if factors is None:
+        factors = [1] * len(properties)
+    if len(properties) != len(factors):
+        raise ValueError("factors must have same length as properties!")
+
+    def loss_fn(batch, result):
+        loss = 0.0
+        for prop, factor in zip(properties, factors):
+            diff = (batch[prop] - means[prop]) / stddevs[prop] - result[prop]
+            diff = diff ** 2
+            err_sq = factor * torch.mean(diff)
+            loss += err_sq
+        return loss
+
+    return loss_fn
 
 
 class WallHook(spk.hooks.Hook):
@@ -325,7 +356,7 @@ def main():
     atomrefs, means, stddevs, avg_n_atoms = get_statistics(dataset, split_file, properties, train_loader)
     model = create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms)
 
-    train(args, model, properties, wall, device, train_loader, val_loader)
+    train(args, model, properties, means, stddevs, wall, device, train_loader, val_loader)
     record_versions(os.path.join(args.model_dir, f"versions_{os.uname()[1]}_{date.today()}.txt"))
 
     if args.evaluate:
