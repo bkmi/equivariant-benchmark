@@ -5,7 +5,7 @@ import torch
 import schnetpack as spk
 
 from e3nn.point.kernelconv import KernelConv
-from e3nn.radial import CosineBasisModel, GaussianRadialModel
+from e3nn.radial import CosineBasisModel, GaussianRadialModel, BesselRadialModel
 
 from e3nn.non_linearities.gated_block import GatedBlock
 from e3nn.o3 import spherical_harmonics_xyz
@@ -27,6 +27,15 @@ def create_kernel_conv(cutoff, n_bases, n_neurons, n_layers, act, radial_model):
     elif radial_model == "gaussian":
         RadialModel = partial(
             GaussianRadialModel,
+            max_radius=cutoff,
+            number_of_basis=n_bases,
+            h=n_neurons,
+            L=n_layers,
+            act=act
+        )
+    elif radial_model == "bessel":
+        RadialModel = partial(
+            BesselRadialModel,
             max_radius=cutoff,
             number_of_basis=n_bases,
             h=n_neurons,

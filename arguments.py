@@ -65,7 +65,7 @@ def train_parser():
     parser.add_argument("--mlp_layers", type=int, default=2, help="Number of layers in atom-wise MLP.")
 
     parser.add_argument(
-        "--radial_model", type=str, choices=("cosine", "gaussian"), default="cosine", help="Radial model."
+        "--radial_model", type=str, choices=("cosine", "gaussian", "bessel"), default="cosine", help="Radial model."
     )
     parser.add_argument("--rad_nb", type=int, default=50, help="Radial number of bases.")
     parser.add_argument("--rad_maxr", type=float, default=10.0, help="Max radius.")

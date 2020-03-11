@@ -210,6 +210,8 @@ def train(args, model, properties, means, stddevs, wall, device, train_loader, v
 
     # trainer
     if args.mlp_out:
+        means = {k: v.to(device) for k, v in means.items()}
+        stddevs = {k: v.to(device) for k, v in stddevs.items()}
         loss = build_standardized_mse_loss(properties, means, stddevs)
     else:
         loss = spk.train.build_mse_loss(properties)
