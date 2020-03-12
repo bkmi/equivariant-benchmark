@@ -374,7 +374,7 @@ def main():
             {"test": test_loader},
             device,
             metrics,
-            file=evaluation_file
+            csv=evaluation_file
         )
 
 

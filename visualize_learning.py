@@ -2,9 +2,9 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
-# import matplotlib as mpl
-# mpl.use("pgf")
-# plt.rcParams.update({"pgf.rcfonts": False})
+
+import schnetpack as spk
+from schnetpack.datasets import QM9
 
 
 TARGETS = sorted("A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv".split())
@@ -170,9 +170,23 @@ def mu(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
         fig.show()
 
 
+def partition_polar_molecules():
+    db = "qm9.db"
+    dataset = QM9(db)
+    _, _, test = spk.train_test_split(
+        dataset,
+        num_train=109000,
+        num_val=1000,
+        split_file="pst.npz"
+    )
+    dipoles = [t["dipole_moment"].item() for t in test]
+    print(any(dipoles == 0.))  # Only gave 8!!
+
+
 def main():
     mu(format='.png')
     u0(format='.png')
+    # partition_polar_molecules()
 
 
 if __name__ == '__main__':
