@@ -129,18 +129,34 @@ def u0(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
 def mu(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
     prefix = "mu"
     log = "log.csv"
-    dfd = {
+    dfd = {}
+    dfd.update({
         "cos_bs12": "20200220_mu",
-        "cos_l1_bs12": "20200220_mu_l1",
-        "cos_l1l2_bs12": "20200220_mu_l1l2",
+        "cos_bs12_l1": "20200220_mu_l1",
+        "cos_bs12_l1l2": "20200220_mu_l1l2",
+    })
+
+    dfd.update({
         "gau_bs20": "20200301_mu_gauss",
-        "gau_l1_bs20": "20200301_mu_gauss_l1",
-        "gau_bs16": "mu_gauss_bs16",
+        "gau_bs20_l1": "20200301_mu_gauss_l1",
         "gau_bs30": "mu_gauss_bs30",
-        "gau_l1_bs16": "mu_l1_gauss_bs16",
-        "gau_l1_bs16_shallow": 'mu_l1_gauss_bs16_shallow',
-        "gau_l1_bs30": "mu_l1_gauss_bs30",
-    }
+        "gau_bs30_l1": "mu_l1_gauss_bs30",
+    })
+
+    dfd.update({
+        "cos_bs16_r50": "mu_bs16_r50",
+        "cos_bs16_l1_r50": "mu_l1_bs16_r50",
+    })
+
+    dfd.update({
+        "gau_bs16": "mu_gauss_bs16",
+        "gau_bs16_r50": "mu_gauss_bs16_r50",
+        "gau_bs16_r50_shallow": "mu_gauss_bs16_r50_shallow",
+        "gau_bs16_l1": "mu_l1_gauss_bs16",
+        "gau_bs16_l1_r50": "mu_l1_gauss_bs16_r50",
+        "gau_bs16_l1_r50_shallow": "mu_l1_gauss_bs16_r50_shallow",
+        "gau_bs16_l1_shallow": 'mu_l1_gauss_bs16_shallow',
+    })
 
     dfd = {k: pd.read_csv(os.path.join(prefix, v, log)) for k, v in dfd.items()}
     columns = ["Train loss", "Validation loss", "MAE_dipole_moment"]
@@ -148,7 +164,7 @@ def mu(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
         fig, axis = plt.subplots(figsize=figsize, dpi=dpi)
         for k, v in dfd.items():
             axis.semilogy(v[column], label=k)
-        fig.legend()
+        # fig.legend()
         fig.tight_layout()
         fig.savefig("mu_" + column.lower().replace(' ', '_') + format)
         fig.show()
