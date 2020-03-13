@@ -376,7 +376,7 @@ def main():
     train(args, model, properties, means, stddevs, wall, device, train_loader, val_loader)
     record_versions(os.path.join(args.model_dir, f"versions_{os.uname()[1]}_{date.today()}.txt"))
 
-    if args.evaluate:
+    if args.evaluate != "False":
         evaluation_file = f"{args.evaluate}_{os.uname()[1]}_{date.today()}.csv"
         logging.info(f"Evaluating test set to file {evaluation_file}")
         metrics = [spk.train.metrics.MeanAbsoluteError(p, p) for p in properties]
@@ -387,7 +387,7 @@ def main():
             {"test": test_loader},
             device,
             metrics,
-            csv=evaluation_file
+            csv_file=evaluation_file
         )
 
 
