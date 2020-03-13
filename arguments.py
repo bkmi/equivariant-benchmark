@@ -52,8 +52,8 @@ def train_parser():
     parser.add_argument("--reduce_lr_patience", type=int, default=5, help="Number of epochs to reduce lr.")
     parser.add_argument("--early_stop_patience", type=int, default=50, help="Number of epochs before training stops.")
 
-    parser.add_argument("--embed", type=int, default=64)
-    parser.add_argument("--l0", type=int, default=64)
+    parser.add_argument("--embed", type=int, default=128)
+    parser.add_argument("--l0", type=int, default=128)
     parser.add_argument("--l1", type=int, default=0)
     parser.add_argument("--l2", type=int, default=0)
     parser.add_argument("--l3", type=int, default=0)
@@ -61,15 +61,21 @@ def train_parser():
     parser.add_argument("--res", action='store_true', help="Select a res-net architecture between gated blocks.")
 
     parser.add_argument("--mlp_out", action="store_true", help="Add a mlp layer to the output instead of convolution.")
-    parser.add_argument("--mlp_neurons", type=int, default=128, help="Number of neurons in atom-wise MLP.")
-    parser.add_argument("--mlp_layers", type=int, default=2, help="Number of layers in atom-wise MLP.")
+    parser.add_argument("--outnet_l0", type=int, default=128, help="Only has an effect when outnet_L > 1.")
+    parser.add_argument("--outnet_l1", type=int, default=0, help="Only has an effect when outnet_L > 1.")
+    parser.add_argument("--outnet_l2", type=int, default=0, help="Only has an effect when outnet_L > 1.")
+    parser.add_argument("--outnet_l3", type=int, default=0, help="Only has an effect when outnet_L > 1.")
+    parser.add_argument("--outnet_L", type=int, default=1)
+    parser.add_argument("--outnet_neurons", type=int, default=128, help="Number of neurons in atom-wise MLP. "
+                                                                        "Only has an effect when outnet_layers > 1")
+    parser.add_argument("--outnet_layers", type=int, default=1, help="Number of layers in atom-wise MLP.")
 
     parser.add_argument(
         "--radial_model", type=str, choices=("cosine", "gaussian", "bessel"), default="cosine", help="Radial model."
     )
     parser.add_argument("--rad_nb", type=int, default=50, help="Radial number of bases.")
     parser.add_argument("--rad_maxr", type=float, default=10.0, help="Max radius.")
-    parser.add_argument("--rad_h", type=int, default=64, help="Size of radial weight parameters.")
+    parser.add_argument("--rad_h", type=int, default=128, help="Size of radial weight parameters.")
     parser.add_argument("--rad_L", type=int, default=2, help="Number of radial layers.")
 
     parser.add_argument("--beta", type=float, default=5.0, help="Softplus and ShiftedSoftplus rescale parameter.")
@@ -98,14 +104,43 @@ def fix_old_args_with_defaults(args):
         args.mlp_out = False
 
     try:
-        args.mlp_neurons
+        args.outnet_neurons = args.mlp_neurons
     except AttributeError:
         args.mlp_neurons = 128
 
     try:
-        args.mlp_layers
+        args.outnet_neurons = args.mlp_layers
     except AttributeError:
         args.mlp_layers = 2
+
+    try:
+        args.outnet_l0
+    except AttributeError:
+        args.outnet_l0 = 128
+    try:
+        args.outnet_l1
+    except AttributeError:
+        args.outnet_l1 = 0
+    try:
+        args.outnet_l2
+    except AttributeError:
+        args.outnet_l2 = 0
+    try:
+        args.outnet_l3
+    except AttributeError:
+        args.outnet_l3 = 0
+    try:
+        args.outnet_L
+    except AttributeError:
+        args.outnet_L = 1
+    try:
+        args.outnet_neurons
+    except AttributeError:
+        args.outnet_neurons = 128
+    try:
+        args.outnet_layers
+    except AttributeError:
+        args.outnet_layers = 1
 
     return args
 

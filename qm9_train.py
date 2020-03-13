@@ -164,7 +164,20 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
                 # aggregation_mode='sum' if args.mlp_out is False else None
             ) for prop in properties
         ]
-
+        outnet = OutputMLPNetwork(
+            kernel_conv=kernel_conv,
+            previous_Rs=net.Rs[-1],
+            l0=args.outnet_l0,
+            l1=args.outnet_l1,
+            l2=args.outnet_l2,
+            l3=args.outnet_l3,
+            L=args.outnet_L,
+            scalar_act=sp,
+            gate_act=rescaled_act.sigmoid,
+            mlp_h=args.outnet_neurons,
+            mlp_L=args.outnet_layers,
+            avg_n_atoms=avg_n_atoms
+        )
     else:
         outnet = OutputScalarNetwork(
             kernel_conv=kernel_conv,
@@ -173,16 +186,16 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
             avg_n_atoms=avg_n_atoms
         )
 
-        output_modules = [
-            spk.atomistic.Atomwise(
-                property=prop,
-                mean=means[prop],
-                stddev=stddevs[prop],
-                atomref=atomrefs[prop] if not args.mlp_out else None,
-                outnet=outnet,
-                # aggregation_mode='sum'
-            ) for prop in properties
-        ]
+    output_modules = [
+        spk.atomistic.Atomwise(
+            property=prop,
+            mean=means[prop],
+            stddev=stddevs[prop],
+            atomref=atomrefs[prop] if not args.mlp_out else None,
+            outnet=outnet,
+            # aggregation_mode='sum'
+        ) for prop in properties
+    ]
     model = spk.AtomisticModel(net, output_modules)
     return model
 

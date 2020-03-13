@@ -182,26 +182,30 @@ class NormVarianceLinear(torch.nn.Module):
 
 
 class OutputMLPNetwork(torch.nn.Module):
-    def __init__(self, kernel_conv, previous_Rs, l0, scalar_act, avg_n_atoms):
+    def __init__(self, kernel_conv, previous_Rs, l0, l1, l2, l3, L, scalar_act, gate_act, mlp_h, mlp_L, avg_n_atoms):
         super(OutputMLPNetwork, self).__init__()
+        assert L > 0
+        L = L - 1
+        assert mlp_L > 0
+        mlp_L = mlp_L - 1
         self.avg_n_atoms = avg_n_atoms
 
-        Rs = [previous_Rs]
-        Rs += [[(l0, 0)]]
-        self.Rs = Rs
-
-        def make_layer(Rs_in, Rs_out):
-            act = GatedBlock(Rs_out, scalar_act, gate_error)
+        def make_gb_layer(Rs_in, Rs_out):
+            act = GatedBlock(Rs_out, scalar_act, gate_act)
             kc = kernel_conv(Rs_in, act.Rs_in)
             return torch.nn.ModuleList([kc, act])
 
-        self.layers = torch.nn.ModuleList([make_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
-        self.mlp = torch.nn.ModuleList([
-            NormVarianceLinear(l0, l0),
-            torch.nn.ReLU(),
-            NormVarianceLinear(l0, 1),
-            torch.nn.ReLU()
-        ])
+        Rs = [previous_Rs]
+        Rs_mid = [(mul, l) for l, mul in enumerate([l0, l1, l2, l3])]
+        Rs += [Rs_mid] * L
+        Rs += [[(mlp_h, 0)]]
+        self.Rs = Rs
+
+        self.layers = torch.nn.ModuleList([make_gb_layer(rs_in, rs_out) for rs_in, rs_out in zip(Rs, Rs[1:])])
+        self.mlp = torch.nn.ModuleList(
+            [NormVarianceLinear(mlp_h, mlp_h), torch.nn.ReLU()] * mlp_L +
+            [NormVarianceLinear(mlp_h, 1)]
+        )
 
     def forward(self, batch):
         _, _, mask, diff_geo, radii = constants(batch)

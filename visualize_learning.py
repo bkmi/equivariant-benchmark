@@ -300,6 +300,7 @@ def u0(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
         "gau_l1_bs20": "20200301_U0_gauss_l1",
         "cos_l1_bs16": "u0_res_l1_swift",
         "cos_bs16": "u0_res_swift",
+        "cos_bs16_r50": "u0_bs16_r50",
     }
 
     dfd = {k: pd.read_csv(os.path.join(prefix, v, log)) for k, v in dfd.items()}
