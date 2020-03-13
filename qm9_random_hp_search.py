@@ -6,31 +6,33 @@ import numpy as np
 
 
 def randomized_hps():
-    total_components = np.random.randint(64, 256)
+    feat_min = 64
+    feat_max = 192
+    total_components = np.random.randint(feat_min, feat_max)
     percent_l0 = np.random.rand(1)
 
-    total_layers = np.random.randint(3, 7)
-    percent_outnet = np.random.rand(1)
+    outnet_L = np.random.randint(1, 2)
+    L = np.random.randint(4, 6) - outnet_L
 
-    total_outnet_components = np.random.randint(64, 256)
+    total_outnet_components = np.random.randint(feat_min, feat_max)
     percent_outnet_l0 = np.random.rand(1)
 
     return {
-        "bs": int(np.random.randint(2, 28)),
+        "bs": int(np.random.randint(2, 25)),
         "lr": float(np.random.rand(1) * 1e-1 + 1e-6),
         "radial_model": ["cosine", "gaussian", "bessel"][np.random.randint(0, 2)],
         "rad_nb": int(np.random.randint(10, 100)),
         "rad_maxr": float(np.random.rand(1) * 28.8 + 1.2),
-        "rad_h": int(np.random.randint(64, 256)),
+        "rad_h": int(np.random.randint(feat_min, feat_max)),
         "rad_L": int(np.random.randint(1, 4)),
-        "embed": int(np.random.randint(64, 256)),
+        "embed": int(np.random.randint(feat_min, feat_max)),
         "l0": int(np.round(percent_l0 * total_components)),
         "l1": int(np.round((1 - percent_l0) * total_components / 3)),
-        "L": int(np.round(percent_outnet * total_layers)),
-        "outnet_L": int(np.round((1 - percent_outnet) * total_layers)),
+        "L": L,
+        "outnet_L": outnet_L,
         "outnet_l0": int(np.round(percent_outnet_l0 * total_outnet_components)),
         "outnet_l1": int(np.round((1 - percent_outnet_l0) * total_outnet_components / 3)),
-        "outnet_neurons": int(np.random.randint(64, 256)),
+        "outnet_neurons": int(np.random.randint(feat_min, feat_max)),
         "outnet_layers": int(np.random.randint(1, 3)),
         "beta": float(np.random.rand(1) * 10 + 0.5),
     }
