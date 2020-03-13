@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -101,29 +102,142 @@ def all_targets():
         fig.show()
 
 
-def u0(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
-    prefix = "u0"
-    log = "log.csv"
-    dfd = {
+def read_log_files(prefix, name_filename_dicts, log_file="log.csv"):
+    df_dicts = []
+    for nfd in name_filename_dicts:
+        df_dicts.append({k: pd.read_csv(os.path.join(prefix, v, log_file)) for k, v in nfd.items()})
+    return df_dicts
+
+
+def semilogy_df_dict(df_dict, column, axis):
+    for k, v in df_dict.items():
+        axis.semilogy(v[column], label=k)
+    return None
+
+
+def several_axes_semilog_df_dict(columns, axes, dfds, titles, xlabels, ylabels):
+    assert len(axes) == len(dfds)
+    assert len(axes) == len(titles)
+    assert len(axes) == len(ylabels)
+    assert len(axes) == len(xlabels)
+
+    for col, ax, dfd, title, xlabel, ylabel in zip(columns, axes, dfds, titles, xlabels, ylabels):
+        semilogy_df_dict(dfd, col, ax)
+        if title is not None:
+            ax.set_title(title)
+        if xlabel is not None:
+            ax.set_xlabel(xlabel)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
+    return None
+
+
+compare_two_mu_mae_semilogs_by_order = partial(
+    several_axes_semilog_df_dict,
+    columns=["MAE_dipole_moment"] * 2,
+    titles=["$Y^l_m$ order = {0}", "$Y^l_m$ order = {0, 1}"],
+    xlabels=["epochs"] * 2,
+    ylabels=["MAE $\mu$", None]
+)
+
+
+def mu_u0_compare_order(figsize=(3, 5), dpi=200, format=".pdf"):
+    dfd_mu = {
+        "cos_bs12": "20200220_mu",
+        "cos_bs12_l1": "20200220_mu_l1",
+        "cos_bs12_l1l2": "20200220_mu_l1l2",
+    }
+    dfd_u0 = {
         "cos_bs12": "20200220_U0",
         "cos_l1_bs12": "20200220_U0_l1",
         "cos_l1l2_bs12": "20200220_U0_l1l2",
-        "gau_bs20": "20200301_U0_gauss",
-        "gau_l1_bs20": "20200301_U0_gauss_l1",
-        "cos_l1_bs16": "u0_res_l1_swift",
-        "cos_bs16": "u0_res_swift",
+    }
+    dfd_mu, = read_log_files("mu", [dfd_mu])
+    dfd_u0, = read_log_files("u0", [dfd_u0])
+    dfds = [dfd_mu, dfd_u0]
+    fig, axis = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=figsize, dpi=dpi)
+    several_axes_semilog_df_dict(
+        ["MAE_dipole_moment", "MAE_energy_U0"],
+        axis.flatten(),
+        dfds,
+        # titles=["$\mu$", "u0"],
+        titles=[None, None],
+        xlabels=[None, "epochs"],
+        ylabels=["MAE $\mu$", "MAE u0"]
+    )
+    axis[1].legend(["$Y^0_m$", "$Y^{0, 1}_m$", "$Y^{0, 1, 2}_m$"])
+    fig.tight_layout()
+    fig.savefig("mu_u0_compare_orders" + format)
+    fig.show()
+
+
+def mu_bs16_r50_compare_basis(figsize=(5, 3), dpi=200, format=".pdf"):
+    dfd = {
+        "cos_bs16_r50": "mu_bs16_r50",
+        "gau_bs16_r50": "mu_gauss_bs16_r50",
+        "bes_bs16_r50": "mu_bs16_r50_bessel",
+    }
+    dfd_l1 = {
+        "cos_bs16_l1_r50": "mu_l1_bs16_r50",
+        "gau_bs16_l1_r50": "mu_l1_gauss_bs16_r50",
+        "bes_bs16_l1_r50": "mu_l1_bs16_r50_bessel"
     }
 
-    dfd = {k: pd.read_csv(os.path.join(prefix, v, log)) for k, v in dfd.items()}
-    columns = ["Train loss", "Validation loss", "MAE_energy_U0"]
-    for column in columns:
-        fig, axis = plt.subplots(figsize=figsize, dpi=dpi)
-        for k, v in dfd.items():
-            axis.semilogy(v[column], label=k)
-        fig.legend()
-        fig.tight_layout()
-        fig.savefig("u0_" + column.lower().replace(' ', '_') + format)
-        fig.show()
+    dfds = read_log_files("mu", [dfd, dfd_l1])
+    fig, axis = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=figsize, dpi=dpi)
+    compare_two_mu_mae_semilogs_by_order(axes=axis, dfds=dfds)
+    axis[1].legend(["Cosine", "Gaussian", "Bessel"])
+    fig.tight_layout()
+    fig.savefig("mu_bs16_r50_compare_basis" + format)
+    fig.show()
+
+
+def mu_r25_compare_bs(figsize=(5, 3), dpi=200, format=".pdf"):
+    dfd = {
+        "cos_bs12": "20200220_mu",
+        "gau_bs16": "mu_gauss_bs16",
+        "gau_bs20": "20200301_mu_gauss",
+        "gau_bs30": "mu_gauss_bs30",
+    }
+    dfd_l1 = {
+        "cos_bs12_l1": "20200220_mu_l1",
+        "gau_bs16_l1": "mu_l1_gauss_bs16",
+        "gau_bs20_l1": "20200301_mu_gauss_l1",
+        "gau_bs30_l1": "mu_l1_gauss_bs30",
+    }
+
+    dfds = read_log_files("mu", [dfd, dfd_l1])
+    fig, axis = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=figsize, dpi=dpi)
+    compare_two_mu_mae_semilogs_by_order(axes=axis, dfds=dfds)
+    axis[1].legend(["cos bs12", "gauss bs16", "gauss bs20", "gauss bs30"])
+    fig.tight_layout()
+    fig.savefig("mu_r25_compare_bs" + format)
+    fig.show()
+
+
+def mu_compare_model_size(figsize=(5, 3), dpi=200, format=".pdf"):
+    dfd = {
+        "cos_bs12": "20200220_mu",
+        "gau_bs16": "mu_gauss_bs16",
+        "cos_bs16_r50": "mu_bs16_r50",
+        "gau_bs16_r50": "mu_gauss_bs16_r50",
+        "gau_bs16_r50_shallow": "mu_gauss_bs16_r50_shallow",
+    }
+    dfd_l1 = {
+        "cos_bs12_l1": "20200220_mu_l1",
+        "gau_bs16_l1": "mu_l1_gauss_bs16",
+        "cos_bs16_l1_r50": "mu_l1_bs16_r50",
+        "gau_bs16_l1_r50": "mu_l1_gauss_bs16_r50",
+        "gau_bs16_l1_r50_shallow": "mu_l1_gauss_bs16_r50_shallow",
+    }
+
+    dfds = read_log_files("mu", [dfd, dfd_l1])
+    fig, axis = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=figsize, dpi=dpi)
+    compare_two_mu_mae_semilogs_by_order(axes=axis, dfds=dfds)
+    axis[1].legend(["cos bs12 r25", "gauss r25", "cos", "gauss", "gauss shallow"])
+    fig.tight_layout()
+    fig.savefig("mu_compare_model_size" + format)
+    fig.show()
 
 
 def mu(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
@@ -149,6 +263,11 @@ def mu(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
     })
 
     dfd.update({
+        "bes_bs16_r50": "mu_bs16_r50_bessel",
+        "bes_bs16_l1_r50": "mu_l1_bs16_r50_bessel"
+    })
+
+    dfd.update({
         "gau_bs16": "mu_gauss_bs16",
         "gau_bs16_r50": "mu_gauss_bs16_r50",
         "gau_bs16_r50_shallow": "mu_gauss_bs16_r50_shallow",
@@ -170,6 +289,31 @@ def mu(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
         fig.show()
 
 
+def u0(figsize=(10/2, 8/2), dpi=200, format=".pdf"):
+    prefix = "u0"
+    log = "log.csv"
+    dfd = {
+        "cos_bs12": "20200220_U0",
+        "cos_l1_bs12": "20200220_U0_l1",
+        "cos_l1l2_bs12": "20200220_U0_l1l2",
+        "gau_bs20": "20200301_U0_gauss",
+        "gau_l1_bs20": "20200301_U0_gauss_l1",
+        "cos_l1_bs16": "u0_res_l1_swift",
+        "cos_bs16": "u0_res_swift",
+    }
+
+    dfd = {k: pd.read_csv(os.path.join(prefix, v, log)) for k, v in dfd.items()}
+    columns = ["Train loss", "Validation loss", "MAE_energy_U0"]
+    for column in columns:
+        fig, axis = plt.subplots(figsize=figsize, dpi=dpi)
+        for k, v in dfd.items():
+            axis.semilogy(v[column], label=k)
+        fig.legend()
+        fig.tight_layout()
+        fig.savefig("u0_" + column.lower().replace(' ', '_') + format)
+        fig.show()
+
+
 def partition_polar_molecules():
     db = "qm9.db"
     dataset = QM9(db)
@@ -184,8 +328,12 @@ def partition_polar_molecules():
 
 
 def main():
-    mu(format='.png')
-    u0(format='.png')
+    # mu(format='.png')
+    # u0(format='.png')
+    mu_bs16_r50_compare_basis(format='.png')
+    mu_r25_compare_bs(format='.png')
+    mu_compare_model_size(format='.png')
+    mu_u0_compare_order(format='.png')
     # partition_polar_molecules()
 
 
