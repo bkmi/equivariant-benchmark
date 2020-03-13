@@ -30,8 +30,8 @@ def train_parser():
     parser.add_argument("--model_dir", type=str, required=True, help="Directory to save model.")
     parser.add_argument("--overwrite", action='store_true', help="When set, overwrite content of model_dir.")
 
-    parser.add_argument("--evaluate", type=str, default="eval", help="Set the name for the evaluation csv. If blank, "
-                                                                     "do not evaluate.")
+    parser.add_argument("--evaluate", type=str, default="eval", help="Set the name for the evaluation csv. If reads "
+                                                                     "False, do not evaluate.")
 
     parser.add_argument("--db", type=str, required=True, help="Path to database.")
     parser.add_argument("--split_file", type=str, default="", help="A split.npz file. Loads if exists, writes if not.")

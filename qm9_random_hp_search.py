@@ -1,5 +1,6 @@
 import os
 import subprocess
+from shutil import rmtree
 from argparse import ArgumentParser
 
 import numpy as np
@@ -54,34 +55,31 @@ def main(args):
     except FileExistsError:
         pass
 
-    try:
-        num_dir = int(sorted(os.listdir(args.contain_dir))[-1]) + 1
-    except IndexError:
-        num_dir = 0
-
-    model_dir = os.path.join(args.contain_dir, f'{num_dir:04d}')
+    num_dir = np.random.randint(0, 999999)
+    model_dir = os.path.join(args.contain_dir, f'{num_dir:06d}')
     while os.path.exists(model_dir):
         num_dir += 1
-        model_dir = os.path.join(args.contain_dir, f'{num_dir:04d}')
+        model_dir = os.path.join(args.contain_dir, f'{num_dir:06d}')
 
-    rand_hps = randomized_hps()
     hps = {
         "wall": args.wall,
         "epochs": args.epochs,
         "min_lr": 1e-7,
         "model_dir": model_dir,
         "ntr": args.ntr,
-        "nva": args.nva
+        "nva": args.nva,
+        "evaluate": args.evaluate
     }
 
-    statement = " ".join([
-        prefix, dict_to_statement(rand_hps), dict_to_statement(hps), fixed_args, targets, "--evaluate False"
-    ])
-    subprocess.run(
-        statement.split(),
-    )
+    success = False
+    while not success:
+        rand_hps = randomized_hps()
+        statement = " ".join([prefix, dict_to_statement(rand_hps), dict_to_statement(hps), fixed_args, targets])
+        r = subprocess.run(statement, shell=True)
+        success = True if r.returncode == 0 else False
+        if not success:
+            rmtree(model_dir)
 
-    print(model_dir)
     with open(os.path.join(model_dir, 'call.txt'), 'w') as f:
         f.write(statement)
 
@@ -95,5 +93,6 @@ if __name__ == '__main__':
     parser.add_argument("--epochs", type=int, default=10, help="Number of epochs. 55 is about a day.")
     parser.add_argument("--ntr", type=int, default=109000, help="Number of training examples.")
     parser.add_argument("--nva", type=int, default=1000, help="Number of validation examples.")
+    parser.add_argument("--evaluate", type=str, default="eval", help="Use False to stop evaluation.")
     args = parser.parse_args()
     main(args)
