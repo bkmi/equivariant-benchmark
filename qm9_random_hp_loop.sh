@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-RUNS="$1"
-FOLDER="$2"
-COUNTER=0
-while [$COUNTER -lt RUNS]; do
-    python qm9_random_hp_search.py "$FOLDER" qm9.db pst.npz
-    COUNTER=$(( $COUNTER + 1 ))
+runs="$1"
+folder="$2"
+counter=0
+while [ $counter -lt $runs ]
+do
+    python qm9_random_hp_search.py "$folder" qm9.db pst.npz
+    counter=$(( $counter + 1 ))
 done
