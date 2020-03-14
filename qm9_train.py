@@ -150,20 +150,6 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
     ident = torch.nn.Identity()
 
     if args.mlp_out:
-        output_modules = [
-            spk.atomistic.Atomwise(
-                property=prop,
-                mean=means[prop],
-                stddev=stddevs[prop],
-                atomref=atomrefs[prop] if not args.mlp_out else None,
-                n_in=dim(net.Rs[-1]),
-                n_out=1,
-                n_neurons=args.mlp_neurons,
-                n_layers=args.mlp_layers,
-                activation=sp
-                # aggregation_mode='sum' if args.mlp_out is False else None
-            ) for prop in properties
-        ]
         outnet = OutputMLPNetwork(
             kernel_conv=kernel_conv,
             previous_Rs=net.Rs[-1],
@@ -191,7 +177,7 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
             property=prop,
             mean=means[prop],
             stddev=stddevs[prop],
-            atomref=atomrefs[prop] if not args.mlp_out else None,
+            atomref=atomrefs[prop],
             outnet=outnet,
             # aggregation_mode='sum'
         ) for prop in properties
@@ -252,6 +238,7 @@ def train(args, model, properties, means, stddevs, wall, device, train_loader, v
 
 def build_standardized_mse_loss(properties, means, stddevs, factors=None):
     """The mean squared error loss function with normalized variance and unit expectation at initialization.
+    This assumes that the result from the model is being shifted and scaled by the mean and variance of the data.
     Args:
         properties (list): mapping between the model properties and the
             dataset properties
@@ -269,7 +256,9 @@ def build_standardized_mse_loss(properties, means, stddevs, factors=None):
     def loss_fn(batch, result):
         loss = 0.0
         for prop, factor in zip(properties, factors):
-            diff = (batch[prop] - means[prop]) / stddevs[prop] - result[prop]
+            batch_rescaled = (batch[prop] - means[prop]) / stddevs[prop]
+            result_rescaled = (result[prop] - means[prop]) / stddevs[prop]
+            diff = batch_rescaled - result_rescaled
             diff = diff ** 2
             err_sq = factor * torch.mean(diff)
             loss += err_sq

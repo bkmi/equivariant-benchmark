@@ -181,6 +181,15 @@ class NormVarianceLinear(torch.nn.Module):
         return x @ (self.weight.t() / size ** 0.5) + self.bias
 
 
+class PermutedBatchNorm1d(torch.nn.Module):
+    def __init__(self, num_features):
+        super(PermutedBatchNorm1d, self).__init__()
+        self.bn = torch.nn.BatchNorm1d(num_features=num_features)
+
+    def forward(self, x):
+        return self.bn(x.permute([0, 2, 1])).permute([0, 2, 1])
+
+
 class OutputMLPNetwork(torch.nn.Module):
     def __init__(self, kernel_conv, previous_Rs, l0, l1, l2, l3, L, scalar_act, gate_act, mlp_h, mlp_L, avg_n_atoms):
         super(OutputMLPNetwork, self).__init__()
@@ -214,11 +223,9 @@ class OutputMLPNetwork(torch.nn.Module):
             features = kc(features.div(self.avg_n_atoms ** 0.5), diff_geo, mask, radii=radii)
             features = act(features)
             features = features * mask.unsqueeze(-1)
-        features = features.sum(dim=1)
-        new_features = features
         for layer in self.mlp:
-            new_features = layer(new_features)
-        return (features + new_features).unsqueeze(1)
+            features = layer(features) * mask.unsqueeze(-1)
+        return features
 
 
 if __name__ == '__main__':
