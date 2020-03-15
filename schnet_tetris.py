@@ -116,7 +116,7 @@ def plot_training(training, schnet_training):
     ax[0, 0].set_title("Y^l_m$ order = {0, 1, 2, 3}")
 
     ax[0, 1].pcolor(schnet_color_grid)
-    ax[0, 0].set_title("Y^l_m$ order = {0}")
+    ax[0, 1].set_title("Y^l_m$ order = {0}")
 
     ax[1, 0].plot(training["accuracy"])
     ax[1, 0].set_xlabel("epochs")
