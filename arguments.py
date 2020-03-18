@@ -36,6 +36,8 @@ def train_parser():
     parser.add_argument("--db", type=str, required=True, help="Path to database.")
     parser.add_argument("--split_file", type=str, default="", help="A split.npz file. Loads if exists, writes if not.")
 
+    parser.add_argument("--keep_n_checkpoints", type=int, default=5, help="How many checkpoints to save.")
+    parser.add_argument("--checkpoint_interval", type=int, default=5, help="How often should checkpoints be saved")
     parser.add_argument("--wall", type=float, default=86400, help="If calculation time is too long, break. One day.")
     parser.add_argument("--cpu", action='store_true', help="Only allow cpu.")
     parser.add_argument("--num_workers", type=int, default=2, help="Workers for data loader.")
@@ -141,6 +143,16 @@ def fix_old_args_with_defaults(args):
         args.outnet_layers
     except AttributeError:
         args.outnet_layers = 1
+
+    try:
+        args.keep_n_checkpoints
+    except AttributeError:
+        args.keep_n_checkpoints = 5
+
+    try:
+        args.checkpoint_interval
+    except AttributeError:
+        args.checkpoint_interval = 5
 
     return args
 

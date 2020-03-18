@@ -222,8 +222,8 @@ def train(args, model, properties, means, stddevs, wall, device, train_loader, v
         optimizer=optimizer,
         train_loader=train_loader,
         validation_loader=val_loader,
-        keep_n_checkpoints=5,
-        checkpoint_interval=5
+        keep_n_checkpoints=args.keep_n_checkpoints,
+        checkpoint_interval=args.checkpoint_interval
     )  # This has the side effect of loading the last checkpoint's state_dict
 
     # run training
