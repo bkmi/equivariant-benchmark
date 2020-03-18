@@ -1,4 +1,5 @@
 import os
+import glob
 from functools import partial
 
 import matplotlib.pyplot as plt
@@ -37,6 +38,21 @@ zpve                       1.616       meV
 """
 
 SCHNET_BEST = {"U0_MAE": 0.012, "mu_MAE": 0.021}
+LOG = "log.csv"
+MAE_COLUMNS = {
+    "dipole_moment": "MAE_dipole_moment",
+    "electronic_spatial_extent": "MAE_electronic_spatial_extent",
+    "energy_U": "MAE_energy_U",
+    "energy_U0": "MAE_energy_U0",
+    "enthalpy_H": "MAE_enthalpy_H",
+    "free_energy": "MAE_free_energy",
+    "gap": "MAE_gap",
+    "heat_capacity": "MAE_heat_capacity",
+    "homo": "MAE_homo",
+    "isotropic_polarizability": "MAE_isotropic_polarizability",
+    "lumo": "MAE_lumo",
+    "zpve": "MAE_zpve",
+}
 
 
 def pair_targets_directories(parent: str):
@@ -328,13 +344,90 @@ def partition_polar_molecules():
     print(any(dipoles == 0.))  # Only gave 8!!
 
 
+def gleichzeitig(figsize=(10, 8), dpi=200, format=".pdf"):
+    dfds = {
+        "cos_bs16": "20200310_gleichzeitig",
+        "cos_bs16_l1": "20200310_gleichzeitig_l1",
+    }
+    dfds = {k: pd.read_csv(os.path.join(v, LOG)) for k, v in dfds.items()}
+    fig, axes = plt.subplots(4, 3, sharex=True, figsize=figsize, dpi=dpi)
+    for hps, dfd in dfds.items():
+        for ax, (k, v) in zip(axes.flatten(), MAE_COLUMNS.items()):
+            ax.semilogy(dfd[v], label=hps)
+            ax.set_title(k)
+        ax.set_xlabel('epochs')
+        ax.legend()
+    fig.tight_layout()
+    fig.savefig("gleichzeitig" + format)
+    fig.show()
+
+
+def random_hp(figsize=(10, 8), dpi=200, format=".pdf"):
+    prefix = 'randsearch'
+    dfs = [i for i in os.listdir(prefix) if os.path.isdir(os.path.join(prefix, i))]
+    dfds = {d: pd.read_csv(os.path.join(prefix, d, LOG)) for d in dfs}
+    fig, axes = plt.subplots(4, 3, sharex=True, figsize=figsize, dpi=dpi)
+    for hps, dfd in dfds.items():
+        for ax, (k, v) in zip(axes.flatten(), MAE_COLUMNS.items()):
+            ax.semilogy(dfd[v], label=hps)
+            ax.set_title(k)
+
+    for i, ax in enumerate(axes[-1, :].flatten()):
+        ax.set_xlabel('epochs')
+        # ymin, ymax = ax.get_ylim()
+        # ymax = 10 if ymax > 10 else ymax
+        # print(ymax)
+        # ax.set_ylim(None, ymax)
+        # ax.set_ylim(10, 10e-1)
+        # ax.legend()
+        # if i == 2:
+        #     ax.legend()
+    fig.tight_layout()
+    # fig.legend()
+    fig.savefig("randsearch" + format)
+    fig.show()
+
+
+def table_from_folder_of_model_dirs(parent):
+    evals = glob.glob(os.path.join(parent, '*/eval*.csv'))
+    names = [ev.split('/')[1].split("_")[-1] for ev in evals]
+    dfs = [pd.read_csv(ev) for ev in evals]
+    mae = {}
+    for name, df in zip(names, dfs):
+        item = df.iloc[0, 0]
+        try:
+            item[0]
+            mae[name] = eval(item)[0]
+        except IndexError:
+            mae[name] = item
+    return mae
+
+
 def main():
+    # mae = table_from_folder_of_model_dirs("all")
+    # order = "mu alpha homo lumo gap r2 zpve u0 U H G Cv"
+    # for name in order.split():
+    #     try:
+    #         # val = mae[name] if name not in "homo lumo gap zpve u0 U H G".split() else 1000 * mae[name]
+    #         val = mae[name] if name in "mu alpha r2 Cv".split() else 1000 * mae[name]
+    #         print(name, round(val, 3))
+    #     except KeyError:
+    #         print(name)
+
+
     # mu(format='.png')
     # u0(format='.png')
-    mu_bs16_r50_compare_basis(format='.png')
-    mu_r25_compare_bs(format='.png')
-    mu_compare_model_size(format='.png')
-    mu_u0_compare_order(format='.png')
+
+    # Main small plots
+    # mu_bs16_r50_compare_basis(format='.png')
+    # mu_r25_compare_bs(format='.png')
+    # mu_compare_model_size(format='.png')
+    # mu_u0_compare_order(format='.png')
+
+    # done with naive multi target bad
+    # gleichzeitig(format='.png')
+    random_hp(format='.png')
+
     # partition_polar_molecules()
 
 

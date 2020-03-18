@@ -2,6 +2,8 @@
 from functools import partial
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+from matplotlib.collections import LineCollection
 
 import torch
 import numpy as np
@@ -16,6 +18,7 @@ from e3nn.rs import dim
 
 
 torch.set_default_dtype(torch.float64)
+torch.manual_seed(44)
 LABELS = ["chiral_shape_1", "chiral_shape_2", "square", "line", "corner", "T", "zigzag", "L"]
 
 
@@ -76,16 +79,18 @@ def train(tetris, labels, f):
     f = f.to(device)
 
     optimizer = torch.optim.Adam(f.parameters())
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.4)
 
     feature = tetris.new_ones(tetris.size(0), tetris.size(1), 1)
 
     training = {"step": [], "loss": [], "accuracy": [], "elementwise_accuracy": []}
-    for step in range(100):
+    for step in range(120):
         out = f(feature, tetris)
         loss = torch.nn.functional.cross_entropy(out, labels)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         element_wise_acc = out.softmax(dim=-1).diag().detach().cpu().numpy()
         acc = out.argmax(1).eq(labels).double().mean().item()
@@ -106,41 +111,64 @@ def train(tetris, labels, f):
     return training, test_accuracy
 
 
-def plot_training(training, schnet_training):
-    color_grid = np.stack(training["elementwise_accuracy"]).T
-    schnet_color_grid = np.stack(schnet_training["elementwise_accuracy"]).T
+def plot_training(data, sections, figsize=(8, 4)):
+    fig, ax = plt.subplots(2, len(data), sharex="col", sharey="row", figsize=figsize)
+    for i, d in enumerate(data):
+        cmap=plt.get_cmap("plasma")
 
-    fig, ax = plt.subplots(2, 2, sharex="col", sharey="row")
-    ax[0, 0].pcolor(color_grid)
-    ax[0, 0].set_yticklabels(LABELS)
-    ax[0, 0].set_title("Y^l_m$ order = {0, 1, 2, 3}")
+        acc = np.array([np.mean(i) for i in np.split(np.array(d["accuracy"]), sections)])
+        points = np.stack([np.linspace(0, len(acc), len(acc)), acc], axis=1).reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
 
-    ax[0, 1].pcolor(schnet_color_grid)
-    ax[0, 1].set_title("Y^l_m$ order = {0}")
+        norm = plt.Normalize(acc.min(), acc.max())
+        lc = LineCollection(segments, cmap=cmap, norm=norm)
+        lc.set_array(acc)
+        # lc.set_linewidth(2)
+        ax[0, i].add_collection(lc)
 
-    ax[1, 0].plot(training["accuracy"])
-    ax[1, 0].set_xlabel("epochs")
-    ax[1, 0].set_ylabel("Mean Argmax Accuracy")
+        # acc = np.array([np.mean(i) for i in np.split(np.array(d["accuracy"]), sections)])
+        # ax[0, i].plot(acc)
+        ax[0, i].set_ylim(0.0, 1.09)
+        if i == 0:
+            ax[0, i].set_ylabel("Mean Argmax Accuracy")
 
-    ax[1, 1].plot(schnet_training["accuracy"])
-    ax[1, 1].set_xlabel("epochs")
+        if i == 0:
+            ax[0, i].set_title(f"$Y^l_m$ order = {list(range(i+1))}")
+        else:
+            ax[0, i].set_title(f"{list(range(i+1))}")
+
+        color_grid = np.stack(d["elementwise_accuracy"], axis=-1)
+        color_grid = np.stack([np.mean(i, axis=1) for i in np.split(color_grid, sections, axis=1)], axis=-1)
+        ax[1, i].pcolormesh(
+            color_grid,
+            cmap=cmap
+        )
+        ax[1, i].set_yticklabels(LABELS)
+        ax[1, i].set_xlabel("training")
+
+    plt.tight_layout()
+    plt.savefig("tetris.png", dpi=200)
     plt.show()
 
 
 def main():
-    representations = [(1,), (2, 2, 2, 1), (4, 4, 4, 4), (6, 4, 4, 0), (64,)]
-    representations = [[(mul, l) for l, mul in enumerate(rs)] for rs in representations]
-    schnet_reps = [[(mul, 0)] for l, mul in enumerate([dim(r) for r in representations])]
+    representations1 = [(1,), (3, 4, 0, 0), (8, 8, 0, 0), (8, 6, 0, 0), (64,)]
+    representations1 = [[(mul, l) for l, mul in enumerate(rs)] for rs in representations1]
+    representations2 = [(1,), (2, 3, 2, 0), (6, 5, 5, 0), (6, 4, 4, 0), (64,)]
+    representations2 = [[(mul, l) for l, mul in enumerate(rs)] for rs in representations2]
+    representations3 = [(1,), (2, 2, 2, 1), (4, 4, 4, 4), (6, 4, 4, 0), (64,)]
+    representations3 = [[(mul, l) for l, mul in enumerate(rs)] for rs in representations3]
+    representations0 = [[(mul, 0)] for l, mul in enumerate([dim(r) for r in representations3])]
 
     tetris, labels = get_dataset()
-    f = SE3Net(len(tetris), representations)
-    schnet = SE3Net(len(tetris), schnet_reps)
-    training, test_acc = train(tetris, labels, f)
-    schnet_training, schnet_acc = train(tetris, labels, schnet)
-    plot_training(training, schnet_training)
-    # plot_training(schnet_training)
-    print('Ok')
+    data = []
+    for i, reps in enumerate([representations0, representations1, representations2, representations3]):
+        f = SE3Net(len(tetris), reps)
+        training, _ = train(tetris, labels, f)
+        data.append(training)
+    return data
 
 
 if __name__ == '__main__':
-    main()
+    data = main()
+    plot_training(data, 24)

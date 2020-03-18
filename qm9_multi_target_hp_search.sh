@@ -90,15 +90,16 @@ case "$1" in
             --model_dir "$model_dir" \
             --split_file "$split_file" \
             --db "$db"  \
+            --bs 14 \
             --wall 87120 \
-            --l0 64 \
-            --l1 21 \
-            --embed 128 \
-            --rad_h 128 \
+            --l0 48 \
+            --l1 16 \
+            --embed 96 \
+            --rad_h 96 \
             --radial_model bessel \
             --mlp_out \
-            --outnet_l0 64 \
-            --outnet_l1 21 \
+            --outnet_l0 48 \
+            --outnet_l1 16 \
             --res \
             --mu \
             --alpha \

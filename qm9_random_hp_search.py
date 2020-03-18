@@ -89,7 +89,7 @@ if __name__ == '__main__':
     parser.add_argument("contain_dir", help="Path to the directory where to put all the model directories.")
     parser.add_argument("db", type=str, help="Path to database.")
     parser.add_argument("split_file", type=str, help="A split.npz file. Loads if exists, writes if not.")
-    parser.add_argument("--wall", type=float, default=18000, help="If calculation time is too long, break. One day.")
+    parser.add_argument("--wall", type=float, default=36000, help="If calculation time is too long, break. One day.")
     parser.add_argument("--epochs", type=int, default=10, help="Number of epochs. 55 is about a day.")
     parser.add_argument("--ntr", type=int, default=109000, help="Number of training examples.")
     parser.add_argument("--nva", type=int, default=1000, help="Number of validation examples.")
