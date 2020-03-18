@@ -50,7 +50,11 @@ def dict_to_statement(d):
 
 def main(args):
     prefix = "python qm9_train.py"
-    fixed_args = f"--split_file {args.split_file} --db {args.db} --mlp_out"
+    fixed_args = f"--split_file {args.split_file} " \
+                 f"--db {args.db} " \
+                 f"--mlp_out " \
+                 f"--keep_n_checkpoints 1 " \
+                 f"--checkpoint_interval 1"
     targets = "--mu --alpha --homo --lumo --gap --r2 --zpve --U0 --U --H --G --Cv"
 
     try:
