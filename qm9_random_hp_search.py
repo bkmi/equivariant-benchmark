@@ -49,7 +49,7 @@ def dict_to_statement(d):
 
 
 def main(args):
-    prefix = "python qm9_train.py"
+    prefix = f"python {os.path.join(os.path.dirname(__file__), 'qm9_train.py')}"
     fixed_args = f"--split_file {args.split_file} " \
                  f"--db {args.db} " \
                  f"--mlp_out " \

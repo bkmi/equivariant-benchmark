@@ -147,7 +147,7 @@ def plot_training(data, sections, figsize=(8, 4)):
         ax[1, i].set_xlabel("training")
 
     plt.tight_layout()
-    plt.savefig("tetris.png", dpi=200)
+    plt.savefig("tetris.pdf", dpi=200)
     plt.show()
 
 
