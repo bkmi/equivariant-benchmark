@@ -1,6 +1,7 @@
 import os
 import glob
-from functools import partial
+from functools import partial, reduce
+import tempfile
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -372,6 +373,7 @@ def random_hp(figsize=(10, 8), dpi=200, format=".pdf"):
             ax.semilogy(dfd[v], label=hps)
             ax.set_title(k)
 
+    # j = len(axes[-1, :].flatten())
     for i, ax in enumerate(axes[-1, :].flatten()):
         ax.set_xlabel('epochs')
         # ymin, ymax = ax.get_ylim()
@@ -380,12 +382,32 @@ def random_hp(figsize=(10, 8), dpi=200, format=".pdf"):
         # ax.set_ylim(None, ymax)
         # ax.set_ylim(10, 10e-1)
         # ax.legend()
-        # if i == 2:
+        # if i == j-1:
         #     ax.legend()
     fig.tight_layout()
     # fig.legend()
     fig.savefig("randsearch" + format)
     fig.show()
+
+
+def fix_eval_csv_strings(parent):
+    evals = glob.glob(os.path.join(parent, '*/eval*.csv'))
+    for ev in evals:
+        with open(ev) as fin, tempfile.NamedTemporaryFile(mode="w", delete=False) as fout:
+            for line in fin:
+                if line[:2] == '"[' and line[-3:-1] == ']"':
+                    fout.write(line[2:-3])
+                else:
+                    fout.write(line)
+            os.rename(fout.name, os.path.abspath(ev))
+
+
+def random_hp_table(parent):
+    evals = glob.glob(os.path.join(parent, '*/eval*.csv'))
+    names = [os.path.dirname(ev).split("/")[-1] for ev in evals]
+    dfs = [pd.read_csv(ev).set_index(pd.Index([name])) for ev, name in zip(evals, names)]
+    df = reduce(lambda x, y: x.append(y), dfs)
+    return df.dropna().apply(pd.to_numeric).drop([col for col in df.columns if not "MAE" in col], axis=1)
 
 
 def table_from_folder_of_model_dirs(parent):
@@ -404,6 +426,8 @@ def table_from_folder_of_model_dirs(parent):
 
 
 def main():
+    # fix_eval_csv_strings("randsearch")
+    df = random_hp_table("randsearch")
     # mae = table_from_folder_of_model_dirs("all")
     # order = "mu alpha homo lumo gap r2 zpve u0 U H G Cv"
     # for name in order.split():
@@ -426,9 +450,10 @@ def main():
 
     # done with naive multi target bad
     # gleichzeitig(format='.png')
-    random_hp(format='.png')
+    # random_hp(format='.png')
 
     # partition_polar_molecules()
+    print("done")
 
 
 if __name__ == '__main__':
