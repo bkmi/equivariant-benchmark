@@ -426,7 +426,7 @@ def table_from_folder_of_model_dirs(parent):
 
 
 def main():
-    # fix_eval_csv_strings("randsearch")
+    fix_eval_csv_strings("randsearch")
     df = random_hp_table("randsearch")
     # mae = table_from_folder_of_model_dirs("all")
     # order = "mu alpha homo lumo gap r2 zpve u0 U H G Cv"

@@ -24,7 +24,7 @@ def randomized_hps():
     return {
         "bs": int(np.random.randint(8, 25)),
         "lr": float(np.random.rand(1) * 3e-1 + 1e-6),
-        "radial_model": ["cosine", "gaussian", "bessel"][np.random.randint(0, 2)],
+        "radial_model": ["cosine", "gaussian", "bessel"][np.random.randint(0, 3)],
         "rad_nb": int(np.random.randint(25, 100)),
         "rad_maxr": float(np.random.rand(1) * 28.8 + 1.2),
         "rad_h": int(np.random.randint(feat_min, feat_max)),
