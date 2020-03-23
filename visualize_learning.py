@@ -425,9 +425,46 @@ def table_from_folder_of_model_dirs(parent):
     return mae
 
 
+def logs_from_folder_of_model_dirs(parent, column_prefix_or_title="MAE"):
+    logs = glob.glob(os.path.join(parent, '*/log.csv'))
+    names = [ev.split('/')[1].split("_")[-1] for ev in logs]
+    dfs = [pd.read_csv(log) for log in logs]
+    columns = [col for df in dfs for col in df.columns if column_prefix_or_title in col]
+    return list(zip(*sorted(zip(names, dfs, columns))))
+
+
+def plot_all_targets(names, dfs, columns, axes, label):
+    lines = []
+    for name, df, column, axis in zip(names, dfs, columns, axes):
+        axis.set_title(name)
+        # line, = axis.semilogy(df[column], label=label)
+        line, = axis.loglog(df[column], label=label)
+        lines.append(line)
+    return lines
+
+
+def fig_axis_all_targets(parents):
+    fig, axes = plt.subplots(4, 3, sharex=True, figsize=(10, 8), dpi=200)
+    for parent in parents:
+        lines = plot_all_targets(
+            *logs_from_folder_of_model_dirs(parent),
+            axes.flatten(),
+            parent
+        )
+    for axis in axes.flatten():
+        axis.set_xlim(None, 60)
+    axes.flatten()[-1].legend()
+    fig.tight_layout()
+    # fig.savefig(column.lower().replace(' ', '_') + '.png')
+    fig.show()
+
+
 def main():
-    fix_eval_csv_strings("randsearch")
-    df = random_hp_table("randsearch")
+    fig_axis_all_targets(["all", "all_l1"])
+
+    # fix_eval_csv_strings("randsearch")
+    # df = random_hp_table("randsearch")
+
     # mae = table_from_folder_of_model_dirs("all")
     # order = "mu alpha homo lumo gap r2 zpve u0 U H G Cv"
     # for name in order.split():
@@ -438,15 +475,14 @@ def main():
     #     except KeyError:
     #         print(name)
 
-
     # mu(format='.png')
     # u0(format='.png')
 
     # Main small plots
-    # mu_bs16_r50_compare_basis(format='.png')
-    # mu_r25_compare_bs(format='.png')
-    # mu_compare_model_size(format='.png')
-    # mu_u0_compare_order(format='.png')
+    # mu_bs16_r50_compare_basis(format='.pdf')
+    # mu_r25_compare_bs(format='.pdf')
+    # mu_compare_model_size(format='.pdf')
+    # mu_u0_compare_order(format='.pdf')
 
     # done with naive multi target bad
     # gleichzeitig(format='.png')
