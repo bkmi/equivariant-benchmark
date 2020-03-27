@@ -5,6 +5,7 @@ import tempfile
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import torch
 
 import schnetpack as spk
 from schnetpack.datasets import QM9
@@ -437,40 +438,74 @@ def plot_all_targets(names, dfs, columns, axes, label):
     lines = []
     for name, df, column, axis in zip(names, dfs, columns, axes):
         axis.set_title(name)
-        # line, = axis.semilogy(df[column], label=label)
-        line, = axis.loglog(df[column], label=label)
+        line, = axis.semilogy(df[column], label=label)
+        # line, = axis.loglog(df[column], label=label)
         lines.append(line)
     return lines
 
 
-def fig_axis_all_targets(parents):
+def fig_axis_all_targets(parents, savefile="", alternative_labels=None):
     fig, axes = plt.subplots(4, 3, sharex=True, figsize=(10, 8), dpi=200)
-    for parent in parents:
+    for i, parent in enumerate(parents):
         lines = plot_all_targets(
             *logs_from_folder_of_model_dirs(parent),
             axes.flatten(),
-            parent
+            parent if alternative_labels is None else alternative_labels[i]
         )
+
     for axis in axes.flatten():
         axis.set_xlim(None, 60)
     axes.flatten()[-1].legend()
+    for axis in axes[-1, :]:
+        axis.set_xlabel("epochs")
+
     fig.tight_layout()
-    # fig.savefig(column.lower().replace(' ', '_') + '.png')
+    if savefile:
+        fig.savefig(savefile)
+    fig.show()
+
+
+def schnet_alpha_small_batches(figsize=(3, 3), dpi=200, format=".pdf"):
+    df = pd.read_csv('/home/ben/sci/equivariant-benchmark/alpha_schnet/log.csv')
+    fig, axis = plt.subplots(figsize=figsize, dpi=dpi)
+    axis.semilogy(df['MAE_isotropic_polarizability'][:300], label="SchNet bs 64")
+    axis.set_ylim(0, None)
+    axis.legend()
+    axis.set_ylabel(r'MAE $\alpha$')
+    axis.set_xlabel('epochs')
+    fig.tight_layout()
+    fig.savefig("schnet_alpha_small_batches" + format)
+    fig.show()
+
+
+def l0net_l1net_mu_mae_correlation(figsize=(10, 8), dpi=200, format=".pdf"):
+    us = torch.load("us.pkl")
+    mus = torch.load("mus.pkl")
+    l0net = torch.abs(torch.load("all/20200308_U/results.pkl")['energy_U'].cpu() - us)
+    l1net = torch.abs(torch.load("all_l1/20200308_U/results.pkl")['energy_U'].cpu() - us)
+    diff = l1net - l0net
+    fig, axis = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, figsize=figsize, dpi=dpi)
+    axis[0].scatter(mus.cpu().numpy(), l0net.cpu().numpy())
+    axis[1].scatter(mus.cpu().numpy(), l1net.cpu().numpy())
+    # axis[0].scatter(mus, diff)
     fig.show()
 
 
 def main():
-    fig_axis_all_targets(["all", "all_l1"])
-
     # fix_eval_csv_strings("randsearch")
     # df = random_hp_table("randsearch")
 
-    # mae = table_from_folder_of_model_dirs("all")
-    # order = "mu alpha homo lumo gap r2 zpve u0 U H G Cv"
+    # 851941
+    # 072052
+    # fig_axis_all_targets(["all", "all_l1"], "all_l0l1_compare.pdf", alternative_labels=["L0Net", "L1Net"])
+
+    # mae = table_from_folder_of_model_dirs("851941")
+    # order = "mu alpha homo lumo gap r2 zpve U0 U H G Cv"
+    # # alphabetical_order = [y for x, y in sorted(zip(order.lower().split(), order.split()))]
     # for name in order.split():
     #     try:
-    #         # val = mae[name] if name not in "homo lumo gap zpve u0 U H G".split() else 1000 * mae[name]
     #         val = mae[name] if name in "mu alpha r2 Cv".split() else 1000 * mae[name]
+    #         # val = mae[name]
     #         print(name, round(val, 3))
     #     except KeyError:
     #         print(name)
@@ -479,10 +514,12 @@ def main():
     # u0(format='.png')
 
     # Main small plots
+    # schnet_alpha_small_batches()
     # mu_bs16_r50_compare_basis(format='.pdf')
     # mu_r25_compare_bs(format='.pdf')
     # mu_compare_model_size(format='.pdf')
     # mu_u0_compare_order(format='.pdf')
+    l0net_l1net_mu_mae_correlation()
 
     # done with naive multi target bad
     # gleichzeitig(format='.png')

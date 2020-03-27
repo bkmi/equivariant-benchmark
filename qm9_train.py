@@ -256,8 +256,8 @@ def build_standardized_mse_loss(properties, means, stddevs, factors=None):
     def loss_fn(batch, result):
         loss = 0.0
         for prop, factor in zip(properties, factors):
-            batch_rescaled = (batch[prop] - means[prop]) / stddevs[prop]
-            result_rescaled = (result[prop] - means[prop]) / stddevs[prop]
+            batch_rescaled = (batch[prop] - means[prop]) / stddevs[prop]  # todo these calculations are wrong
+            result_rescaled = (result[prop] - means[prop]) / stddevs[prop]  # todo because atomref is still in there
             diff = batch_rescaled - result_rescaled
             diff = diff ** 2
             err_sq = factor * torch.mean(diff)
