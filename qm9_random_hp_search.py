@@ -12,8 +12,12 @@ def randomized_hps():
     total_components = np.random.randint(feat_min, feat_max)
     percent_l0 = np.random.rand(1)
 
-    outnet_L = np.random.randint(1, 2)
-    L = np.random.randint(3, 6) - outnet_L
+    min_radial = 5.0
+    max_radial = 30.0
+    width_radial = max_radial - min_radial
+
+    outnet_L = np.random.randint(2, 3)
+    L = np.random.randint(4, 7) - outnet_L
 
     outnet_feat_smaller_by = 16
     outnet_feat_min = feat_min - outnet_feat_smaller_by
@@ -23,10 +27,10 @@ def randomized_hps():
 
     return {
         "bs": int(np.random.randint(8, 25)),
-        "lr": float(np.random.rand(1) * 3e-1 + 1e-6),
+        "lr": float(np.random.rand(1) * 3e-1 + 1e-5),
         "radial_model": ["cosine", "gaussian", "bessel"][np.random.randint(0, 3)],
         "rad_nb": int(np.random.randint(25, 100)),
-        "rad_maxr": float(np.random.rand(1) * 28.8 + 1.2),
+        "rad_maxr": float(np.random.rand(1) * width_radial + min_radial),
         "rad_h": int(np.random.randint(feat_min, feat_max)),
         "rad_L": int(np.random.randint(1, 3)),
         "embed": int(np.random.randint(feat_min, feat_max)),
@@ -97,7 +101,7 @@ if __name__ == '__main__':
     parser.add_argument("db", type=str, help="Path to database.")
     parser.add_argument("split_file", type=str, help="A split.npz file. Loads if exists, writes if not.")
     parser.add_argument("--wall", type=float, default=36000, help="If calculation time is too long, break. One day.")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs. 55 is about a day.")
+    parser.add_argument("--epochs", type=int, default=15, help="Number of epochs. 55 is about a day.")
     parser.add_argument("--ntr", type=int, default=109000, help="Number of training examples.")
     parser.add_argument("--nva", type=int, default=1000, help="Number of validation examples.")
     parser.add_argument("--evaluate", type=str, default="eval", help="Use False to stop evaluation.")

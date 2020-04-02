@@ -494,6 +494,7 @@ def l0net_l1net_mu_mae_correlation(figsize=(10, 8), dpi=200, format=".pdf"):
 def main():
     # fix_eval_csv_strings("randsearch")
     # df = random_hp_table("randsearch")
+    # df.idxmin().value_counts()
 
     # 851941
     # 072052
