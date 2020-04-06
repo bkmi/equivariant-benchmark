@@ -186,7 +186,7 @@ def create_model(args, atomrefs, means, stddevs, properties, avg_n_atoms):
     return model
 
 
-def train(args, model, properties, means, stddevs, wall, device, train_loader, val_loader):
+def train(args, model, properties, means, stddevs, wall, device, train_loader, val_loader, atomref):
     if args.optimizer == 'adam':
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     elif args.optimizer == 'sgd':
@@ -211,7 +211,7 @@ def train(args, model, properties, means, stddevs, wall, device, train_loader, v
     if args.mlp_out:
         means = {k: v.to(device) for k, v in means.items()}
         stddevs = {k: v.to(device) for k, v in stddevs.items()}
-        loss = build_standardized_mse_loss(properties, means, stddevs)
+        loss = build_standardized_mse_loss(properties, means, stddevs, atomref, device)
     else:
         loss = spk.train.build_mse_loss(properties)
     trainer = spk.train.Trainer(
@@ -236,14 +236,15 @@ def train(args, model, properties, means, stddevs, wall, device, train_loader, v
     # cProfile.runctx("trainer.train(device=device, n_epochs=n_epochs)", globals(), locals(), sort="tottime")
 
 
-def build_standardized_mse_loss(properties, means, stddevs, factors=None):
+def build_standardized_mse_loss(properties, means, stddevs, atomref, device, factors=None):
     """The mean squared error loss function with normalized variance and unit expectation at initialization.
     This assumes that the result from the model is being shifted and scaled by the mean and variance of the data.
     Args:
-        properties (list): mapping between the model properties and the
-            dataset properties
-        factors (list or None): multiply loss value of property with tradeoff
-            factor
+        properties (list): mapping between the model properties and the dataset properties
+        means:
+        stddevs:
+        atomref: array of atomwise reference values
+        factors (list or None): multiply loss value of property with tradeoff factor
 
     Returns:
         mean squared error loss function
@@ -253,11 +254,21 @@ def build_standardized_mse_loss(properties, means, stddevs, factors=None):
     if len(properties) != len(factors):
         raise ValueError("factors must have same length as properties!")
 
+    atomref = {
+        prop: torch.nn.Embedding.from_pretrained(torch.from_numpy(atomref[prop].astype(np.float32))).to(device)
+        if atomref[prop] is not None else None for prop in properties
+    }
+
     def loss_fn(batch, result):
         loss = 0.0
         for prop, factor in zip(properties, factors):
-            batch_rescaled = (batch[prop] - means[prop]) / stddevs[prop]  # todo these calculations are wrong
-            result_rescaled = (result[prop] - means[prop]) / stddevs[prop]  # todo because atomref is still in there
+            ar = atomref[prop]
+            if ar is not None:
+                y0 = ar(batch[spk.Properties.Z]).sum(dim=1)
+            else:
+                y0 = 0
+            batch_rescaled = (batch[prop] - means[prop] - y0) / stddevs[prop]
+            result_rescaled = (result[prop] - means[prop] - y0) / stddevs[prop]
             diff = batch_rescaled - result_rescaled
             diff = diff ** 2
             err_sq = factor * torch.mean(diff)
@@ -362,7 +373,7 @@ def main():
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
 
-    train(args, model, properties, means, stddevs, wall, device, train_loader, val_loader)
+    train(args, model, properties, means, stddevs, wall, device, train_loader, val_loader, atomrefs)
     record_versions(os.path.join(args.model_dir, f"versions_{os.uname()[1]}_{date.today()}.txt"))
 
     if args.evaluate != "False":
