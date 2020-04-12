@@ -11,6 +11,20 @@ import schnetpack as spk
 from schnetpack.datasets import QM9
 
 
+TARGET_NAMES = [
+    'dipole_moment',
+    'isotropic_polarizability',
+    'homo',
+    'lumo',
+    'gap',
+    'electronic_spatial_extent',
+    'zpve',
+    'energy_U0',
+    'energy_U',
+    'enthalpy_H',
+    'free_energy',
+    'heat_capacity',
+]
 TARGETS = sorted("A B C mu alpha homo lumo gap r2 zpve U0 U H G Cv".split())
 SCHNET = """
 https://pubs.acs.org/doi/10.1021/acs.jctc.8b00908
@@ -491,10 +505,28 @@ def l0net_l1net_mu_mae_correlation(figsize=(10, 8), dpi=200, format=".pdf"):
     fig.show()
 
 
+def test_set_stds():
+    dataset = QM9('qm9.db')
+    _, _, test = spk.train_test_split(
+        dataset,
+        num_train=109000,
+        num_val=1000,
+        split_file='pst.npz'
+    )
+    test_loader = spk.AtomsLoader(test, batch_size=len(test))
+    for item in test_loader:
+        break
+    outs = {tn: item[tn].std() for tn in TARGET_NAMES}
+    return outs
+
+
 def main():
-    # fix_eval_csv_strings("randsearch")
-    # df = random_hp_table("randsearch")
-    # df.idxmin().value_counts()
+    fix_eval_csv_strings("randsearch")
+    stds_dict = test_set_stds()
+    df = random_hp_table("randsearch")
+    df2 = df.apply(lambda x: x / stds_dict[x.name[9:]])
+    df2 = df2.mean(axis=1)
+    df.idxmin().value_counts()
 
     # 851941
     # 072052
@@ -520,7 +552,7 @@ def main():
     # mu_r25_compare_bs(format='.pdf')
     # mu_compare_model_size(format='.pdf')
     # mu_u0_compare_order(format='.pdf')
-    l0net_l1net_mu_mae_correlation()
+    # l0net_l1net_mu_mae_correlation()
 
     # done with naive multi target bad
     # gleichzeitig(format='.png')
