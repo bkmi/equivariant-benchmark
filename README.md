@@ -1,6 +1,7 @@
 # equivariant-benchmark
 Benchmarking equivariant neural networks.
 
+You have to install exactly the following commits if you want to make this work.
 
 ```
 SchNetPack commit information:
